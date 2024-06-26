@@ -12,6 +12,7 @@ const OrderGenerated = require('./reward_app/models/user_order.js');
 const mongoose = require('mongoose');
 const ESG = require('./reward_app/models/esg_model.js');
 const payment = require('./reward_app/models/payment_model.js');
+const UserPurchase = require('./reward_app/models/purchase_history.js');
 const Cashback = require('./reward_app/models/cash_back_model.js');
 app.use(express.json());
 const VoucherCredited =require('./reward_app/models/user_vouchers.js');
@@ -461,7 +462,7 @@ app.get('/coinshistory',AuthMiddleware ,async(req ,res)=>{
     try{
         const userData = await User_Data.find({ user: req.query.userid });
         console.log("user coins data", userData);
-        return res.status(200).json({ message : 'Coins ' ,success :'true' ,user: userData })
+        return res.status(200).json({ message : 'Coins ' ,success :'true' ,user: userData ,type :'Credit' })
     }catch(error){
      console.log(error);
     }
@@ -479,12 +480,15 @@ app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
       purchase_order_name,
       product_price,
       address,
+      imagePath,
+      productName
     } = req.body;
 
     // Ensure all required fields are provided
-    if (!product_id || !PhoneNumber || !product_price || !purchase_order_name || !address) {
+    if (!product_id || !PhoneNumber || !product_price || !purchase_order_name || !address ||!imagePath || !productName) {
       return res.status(400).json({ message: 'All fields are required' });
     }
+    console.log("image path is",imagePath);
 
     const userId = req.query.userid;
     const user = await User.findById(userId);
@@ -519,14 +523,27 @@ app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
       product_id,
       order_id,
       PhoneNumber,
+      imagePath,
       purchase_order_name,
       address,
       transaction_id,
+      product_price,
+      productName,
       Date: orderDate,
     });
 
     // Save the order to the database
     const savedOrder = await order.save();
+
+    const userPurchase = new UserPurchase({
+      user: userId,
+      ecoCoins: product_price.toString(),
+      productName: productName,
+      transaction_id: transaction_id,
+      createdAt: new Date()
+    });
+
+    await userPurchase.save();
     console.log("Saved order:", savedOrder);
     console.log("updated coins is ",updatedUser.echoCoins);
     return res.status(201).json({ message: 'Order generated successfully', success: 'true', order: savedOrder ,coins:updatedUser.echoCoins });
@@ -537,12 +554,14 @@ app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
 });
 
 
-app.get('/order_record', AuthMiddleware , async (req, res)=>{
-    console.log("request received for Order record", req);
+app.get('/order_record', async (req, res)=>{
+    console.log("request received for Order record", req.query.userid);
      try {
-        const userId = req.user._id;
-
-        const orders = await OrderGenerated.find({ user: userId }).exec();
+        // const userId = req.user._id;
+        // console.log(userId);
+        // const orders = await OrderGenerated.findById(userId);
+        const orders = await OrderGenerated.find({ user: req.query.userid });
+        console.log("orders are ",orders);
 
         if (!orders || orders.length === 0) {
           return res.status(404).json({ message: 'No order records found for the user' });
@@ -581,7 +600,6 @@ app.post('/payment',AuthMiddleware, async(req,res)=>{
   user.echoCoins = avilable_coins;
   await user.save();
   
-
   const Payment = new payment({ userId, amount ,phoneNumber });
     // Save the payment record to the database
   await Payment.save();
@@ -754,6 +772,16 @@ app.post('/checkoutVoucher' ,AuthMiddleware, async(req,res)=>{
 
     await voucher.save();
 
+    
+    const userPurchase = new UserPurchase({
+      user: userId,
+      ecoCoins: product_price.toString(),
+      productName: brand,
+      transaction_id: transaction_id,
+      createdAt: new Date()
+    });
+    await userPurchase.save();
+
     res.status(200).json({ success: true, message: 'Payment deducted and voucher added successfully' });
 
 
@@ -780,6 +808,19 @@ app.get('/getVouchers', AuthMiddleware, async (req, res) => {
   }
 });
 
+app.get('/purchaseHistory',AuthMiddleware ,async(req,res)=>{
+  console.log("request received for vouchers");
+  try {
+    const userId = req.query.userid; // Correctly scoped and declared
+    console.log(userId);
+    const userPurchase = await UserPurchase.find({ user: userId }).exec();
+    console.log(userPurchase);
+    res.status(200).json({type:'Debit',userPurchase:userPurchase});
+  } catch (error) {
+    console.error('Error fetching purchase history:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+} );
 
 
  

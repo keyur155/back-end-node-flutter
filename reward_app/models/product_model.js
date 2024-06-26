@@ -13,7 +13,6 @@ const stockSchema = new mongoose.Schema({
     },
   });
   
-
 const product = new mongoose.Schema({
     name: {
         type: String,
