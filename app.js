@@ -811,7 +811,7 @@ app.post('/checkoutVoucher', AuthMiddleware, async (req, res) => {
 
     await userPurchase.save();
 
-    res.status(200).json({ success: true, message: 'Payment deducted and voucher added successfully' });
+    res.status(200).json({ success: true, message: 'Payment deducted and voucher added successfully' ,orderId:  orderId , active :is_active ,redeemed :is_redeemed});
 
   } catch (error) {
     console.error('Error processing voucher:', error);
