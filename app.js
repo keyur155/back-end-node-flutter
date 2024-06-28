@@ -16,7 +16,7 @@ const UserPurchase = require('./reward_app/models/purchase_history.js');
 const Cashback = require('./reward_app/models/cash_back_model.js');
 app.use(express.json());
 const VoucherCredited =require('./reward_app/models/user_vouchers.js');
-const OrderId = require('./reward_app/models/order_count.js');
+const OrderCounter = require('./reward_app/models/order_count.js');
 app.use(express.urlencoded({ extended: false }));
 app.set('trust proxy', true);
 
