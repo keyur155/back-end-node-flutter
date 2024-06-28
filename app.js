@@ -562,7 +562,7 @@ app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
     await userPurchase.save();
     console.log("Saved order:", savedOrder);
     console.log("updated coins is ",updatedUser.echoCoins);
-    return res.status(201).json({ message: 'Order generated successfully', success: 'true', order: savedOrder ,coins:updatedUser.echoCoins });
+    return res.status(201).json({ message: 'Order generated successfully', success: true, order: savedOrder ,coins:updatedUser.echoCoins });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -811,7 +811,8 @@ app.post('/checkoutVoucher', AuthMiddleware, async (req, res) => {
 
     await userPurchase.save();
 
-    res.status(200).json({ success: true, message: 'Payment deducted and voucher added successfully' ,orderId:  orderId , active :is_active ,redeemed :is_redeemed});
+    res.status(200).json({ success: true, message: 'Payment deducted and voucher added successfully' ,active: voucher.is_active, 
+      redeemed: voucher.is_redeemed });
 
   } catch (error) {
     console.error('Error processing voucher:', error);
