@@ -523,8 +523,10 @@ app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
 
     orderCounter.count += 1;
     await orderCounter.save();
-    const orderId = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}/${String(orderCounter.count).padStart(3, '0')}`;
+    // const orderId = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}/${String(orderCounter.count).padStart(3, '0')}`;
 
+
+    const orderId = `${orderIdPrefix}${String(orderCounter.count).padStart(3, '0')}`;
 
     // Generating IDs by default
     const order_id =  orderId;
@@ -726,10 +728,8 @@ app.post('/transfer-cashback', async (req, res) => {
   }
 });
 
-
-app.post('/checkoutVoucher' ,AuthMiddleware, async(req,res)=>{
-
-  console.log("request received and user id is",req.query.userid);
+app.post('/checkoutVoucher', AuthMiddleware, async (req, res) => {
+  console.log("request received and user id is", req.query.userid);
   const userId = req.query.userid;
   const {
     product_price,
@@ -738,29 +738,31 @@ app.post('/checkoutVoucher' ,AuthMiddleware, async(req,res)=>{
     brand,
     offer,
     voucher_code,
-} = req.body;
-  
-  try{
-    const user = await User.findOne({ _id: req.query.userid });
+  } = req.body;
+
+  try {
+    const user = await User.findOne({ _id: userId });
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
-  }
+    }
 
-  const current_coins = user.echoCoins;
+    const current_coins = user.echoCoins;
 
-  if (current_coins < product_price) {
+    if (current_coins < product_price) {
       return res.status(400).json({ error: 'Insufficient funds' });
-  }
+    }
 
-  const available_coins = current_coins - product_price;
+    const available_coins = current_coins - product_price;
 
-  user.echoCoins = available_coins;
-  await user.save();
+    // Update user's echoCoins
+    user.echoCoins = available_coins;
+    await user.save();
 
-    const valid_from = new Date();
-    const valid_until = new Date();
-    valid_until.setDate(valid_from.getDate() + 7);
+    // Generate order ID
+    const today = new Date();
+    const dateString = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+
     let orderCounter = await OrderCounter.findOne({ date: dateString });
 
     if (!orderCounter) {
@@ -769,55 +771,151 @@ app.post('/checkoutVoucher' ,AuthMiddleware, async(req,res)=>{
 
     orderCounter.count += 1;
     await orderCounter.save();
-    const orderId = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}/${String(orderCounter.count).padStart(3, '0')}`;
 
+    // Construct order ID
+    const orderIdPrefix = `${today.getDate()}${today.getMonth() + 1}${today.getFullYear()}`;
+    const orderId = `${orderIdPrefix}${String(orderCounter.count).padStart(3, '0')}`;
 
-    // Generating IDs by default
-    const order_id =  orderId;
-    // const transaction_id = new mongoose.Types.ObjectId().toString();
-    const orderDate = new Date().toISOString(); // Set expiry date to 7 days from now
-
-    // const order_id = new mongoose.Types.ObjectId().toString(); // Generate a unique order ID
-    const transaction_id = new mongoose.Types.ObjectId().toString(); // Generate a unique transaction ID
+    // Set voucher validity dates
+    const valid_from = new Date();
+    const valid_until = new Date();
+    valid_until.setDate(valid_from.getDate() + 7);
 
     // Create a new VoucherCredited entry
     const voucher = new VoucherCredited({
-        user: userId,
-        voucher_id,
-        brand,
-        voucher_code,
-        category,
-        order_id,
-        product_price,
-        valid_from,
-        valid_until,
-        transaction_id,
-        is_active: true,
-        is_redeemed: false,
-        Date: new Date()
+      user: userId,
+      voucher_id,
+      brand,
+      voucher_code,
+      category,
+      order_id: orderId,
+      product_price,
+      valid_from,
+      valid_until,
+      transaction_id: new mongoose.Types.ObjectId().toString(),
+      is_active: true,
+      is_redeemed: false,
+      Date: new Date()
     });
 
     await voucher.save();
 
-    
+    // Record user purchase
     const userPurchase = new UserPurchase({
       user: userId,
       ecoCoins: product_price.toString(),
       productName: brand,
-      transaction_id: transaction_id,
+      transaction_id: voucher.transaction_id,
       createdAt: new Date()
     });
+
     await userPurchase.save();
 
     res.status(200).json({ success: true, message: 'Payment deducted and voucher added successfully' });
 
-  }catch(error){
+  } catch (error) {
     console.error('Error processing voucher:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-
-
 });
+
+
+
+// app.post('/checkoutVoucher' ,AuthMiddleware, async(req,res)=>{
+
+//   console.log("request received and user id is",req.query.userid);
+//   const userId = req.query.userid;
+//   const {
+//     product_price,
+//     voucher_id,
+//     category,
+//     brand,
+//     offer,
+//     voucher_code,
+// } = req.body;
+  
+//   try{
+//     const user = await User.findOne({ _id: req.query.userid });
+
+//     if (!user) {
+//       return res.status(404).json({ error: 'User not found' });
+//   }
+
+//   const current_coins = user.echoCoins;
+
+//   if (current_coins < product_price) {
+//       return res.status(400).json({ error: 'Insufficient funds' });
+//   }
+
+//   const available_coins = current_coins - product_price;
+
+//   user.echoCoins = available_coins;
+//   await user.save();
+  
+
+//     const valid_from = new Date();
+//     const valid_until = new Date();
+//     valid_until.setDate(valid_from.getDate() + 7);
+//     const today = new Date();
+//     const dateString = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+
+//     let orderCounter = await OrderCounter.findOne({ date: dateString });
+
+//     if (!orderCounter) {
+//       orderCounter = new OrderCounter({ date: dateString, count: 0 });
+//     }
+
+//     orderCounter.count += 1;
+//     await orderCounter.save();
+//     // const orderId = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}/${String(orderCounter.count).padStart(3, '0')}`;
+//     const orderId = `${orderIdPrefix}${String(orderCounter.count).padStart(3, '0')}`;
+
+//     // Generating IDs by default
+//     const order_id =  orderId;
+//     // const transaction_id = new mongoose.Types.ObjectId().toString();
+//     const orderDate = new Date().toISOString(); // Set expiry date to 7 days from now
+
+//     // const order_id = new mongoose.Types.ObjectId().toString(); // Generate a unique order ID
+//     const transaction_id = new mongoose.Types.ObjectId().toString(); // Generate a unique transaction ID
+
+//     // Create a new VoucherCredited entry
+//     const voucher = new VoucherCredited({
+//         user: userId,
+//         voucher_id,
+//         brand,
+//         voucher_code,
+//         category,
+//         order_id,
+//         product_price,
+//         valid_from,
+//         valid_until,
+//         transaction_id,
+//         is_active: true,
+//         is_redeemed: false,
+//         Date: new Date()
+//     });
+
+//     await voucher.save();
+
+    
+//     const userPurchase = new UserPurchase({
+//       user: userId,
+//       ecoCoins: product_price.toString(),
+//       productName: brand,
+//       transaction_id: transaction_id,
+//       createdAt: new Date()
+//     });
+//     await userPurchase.save();
+
+//     res.status(200).json({ success: true, message: 'Payment deducted and voucher added successfully' });
+
+//   }catch(error){
+//     console.error('Error processing voucher:', error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+
+
+// });
 
 app.get('/getVouchers', AuthMiddleware, async (req, res) => {
   console.log("request received for vouchers");
