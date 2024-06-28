@@ -468,7 +468,6 @@ app.get('/coinshistory',AuthMiddleware ,async(req ,res)=>{
     }
 });
 
-
 app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
   console.log("request received for Order", req.body);
 
@@ -551,6 +550,8 @@ app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
     // Save the order to the database
     const savedOrder = await order.save();
 
+        
+
     const userPurchase = new UserPurchase({
       user: userId,
       ecoCoins: product_price.toString(),
@@ -568,6 +569,107 @@ app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+
+// app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
+//   console.log("request received for Order", req.body);
+
+//   try {
+//     // Extract necessary fields from the request body
+//     const {
+//       product_id,
+//       PhoneNumber,
+//       purchase_order_name,
+//       product_price,
+//       address,
+//       imagePath,
+//       productName
+//     } = req.body;
+
+//     // Ensure all required fields are provided
+//     if (!product_id || !PhoneNumber || !product_price || !purchase_order_name || !address ||!imagePath || !productName) {
+//       return res.status(400).json({ message: 'All fields are required' });
+//     }
+//     console.log("image path is",imagePath);
+
+//     const userId = req.query.userid;
+//     const user = await User.findById(userId);
+
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     if (user.echoCoins < product_price) {
+//       return res.status(400).json({ message: 'Insufficient echoCoins' });
+//     }
+
+//     // Use MongoDB's atomic update operators to update user balance
+//     const updatedUser = await User.findOneAndUpdate(
+//       { _id: userId, echoCoins: { $gte: product_price } },
+//       { $inc: { echoCoins: -product_price } },
+//       { new: true }
+//     );
+
+//     if (!updatedUser) {
+//       return res.status(400).json({ message: 'Failed to update user balance' });
+//     }
+
+//     const today = new Date();
+//     const dateString = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+    
+//     let orderCounter = await OrderCounter.findOne({ date: dateString });
+
+//     if (!orderCounter) {
+//       orderCounter = new OrderCounter({ date: dateString, count: 0 });
+//     }
+
+//     orderCounter.count += 1;
+//     await orderCounter.save();
+//     // const orderId = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}/${String(orderCounter.count).padStart(3, '0')}`;
+
+
+//     const orderId = `${orderIdPrefix}${String(orderCounter.count).padStart(3, '0')}`;
+
+//     // Generating IDs by default
+//     const order_id =  orderId;
+//     const transaction_id = new mongoose.Types.ObjectId().toString();
+//     const orderDate = new Date().toISOString();
+
+//     // Create a new order
+//     const order = new OrderGenerated({
+//       user: userId,
+//       product_id,
+//       order_id,
+//       PhoneNumber,
+//       imagePath,
+//       purchase_order_name,
+//       address,
+//       transaction_id,
+//       product_price,
+//       productName,
+//       Date: orderDate,
+//     });
+
+//     // Save the order to the database
+//     const savedOrder = await order.save();
+
+//     const userPurchase = new UserPurchase({
+//       user: userId,
+//       ecoCoins: product_price.toString(),
+//       productName: productName,
+//       transaction_id: transaction_id,
+//       createdAt: new Date()
+//     });
+
+//     await userPurchase.save();
+//     console.log("Saved order:", savedOrder);
+//     console.log("updated coins is ",updatedUser.echoCoins);
+//     return res.status(201).json({ message: 'Order generated successfully', success: 'true', order: savedOrder ,coins:updatedUser.echoCoins });
+//   } catch (error) {
+//     console.log(error);
+//     return res.status(500).json({ message: 'Internal server error' });
+//   }
+// });
 
 
 app.get('/order_record', async (req, res)=>{
