@@ -468,7 +468,7 @@ app.get('/coinshistory',AuthMiddleware ,async(req ,res)=>{
     }
 });
 
-app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
+app.post('/orderGenerated', async (req, res) => {
   console.log("request received for Order", req.body);
 
   try {
@@ -511,9 +511,10 @@ app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Failed to update user balance' });
     }
 
+    // Generate order ID
     const today = new Date();
     const dateString = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
-    
+
     let orderCounter = await OrderCounter.findOne({ date: dateString });
 
     if (!orderCounter) {
@@ -522,15 +523,43 @@ app.post('/orderGenerated', AuthMiddleware, async (req, res) => {
 
     orderCounter.count += 1;
     await orderCounter.save();
-    // const orderId = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}/${String(orderCounter.count).padStart(3, '0')}`;
 
-
+    // Construct order ID
+    const orderIdPrefix = `${today.getDate()}${today.getMonth() + 1}${today.getFullYear()}`;
     const orderId = `${orderIdPrefix}${String(orderCounter.count).padStart(3, '0')}`;
 
-    // Generating IDs by default
+    // Set voucher validity dates
+    const valid_from = new Date();
+    const valid_until = new Date();
+    valid_until.setDate(valid_from.getDate() + 7);
     const order_id =  orderId;
     const transaction_id = new mongoose.Types.ObjectId().toString();
     const orderDate = new Date().toISOString();
+
+
+    // const today = new Date();
+    // const dateString = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+    
+    // let orderCounter = await OrderCounter.findOne({ date: dateString });
+
+    // if (!orderCounter) {
+    //   orderCounter = new OrderCounter({ date: dateString, count: 0 });
+    // }
+
+
+
+    // orderCounter.count += 1;
+    // await orderCounter.save();
+
+    // // const orderId = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}/${String(orderCounter.count).padStart(3, '0')}`;
+
+
+    // const orderId = `${orderIdPrefix}${String(orderCounter.count).padStart(3, '0')}`;
+
+    // // Generating IDs by default
+    // const order_id =  orderId;
+    // const transaction_id = new mongoose.Types.ObjectId().toString();
+    // const orderDate = new Date().toISOString();
 
     // Create a new order
     const order = new OrderGenerated({
