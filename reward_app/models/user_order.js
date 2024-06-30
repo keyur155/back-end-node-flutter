@@ -38,6 +38,28 @@ const OrderGeneratedSchema = new mongoose.Schema({
     require: true,
     unique: true
   },
+  imagePath:{
+   type:String,
+   require:true
+  },
+  product_price:{
+   type:String,
+   require:true
+  },
+  productName:{
+   type:String,
+   require:true
+  },
+  size:{
+   type:String,
+   
+  },
+  selectedColor:{
+   type:String,
+  },
+  quantity:{
+   type:String,
+  },
  Date: { type: Date, required: true },
 },
  { timestamps: true }
