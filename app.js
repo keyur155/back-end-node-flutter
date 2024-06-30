@@ -707,7 +707,7 @@ app.post('/orderGenerated',AuthMiddleware, async (req, res) => {
 // });
 
 
-app.get('/order_record', async (req, res)=>{
+app.get('/order_record', AuthMiddleware,async (req, res)=> {
     console.log("request received for Order record", req.query.userid);
      try {
         // const userId = req.user._id;
