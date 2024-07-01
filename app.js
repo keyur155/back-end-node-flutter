@@ -461,7 +461,7 @@ app.get('/coinshistory',AuthMiddleware ,async(req ,res)=>{
     console.log("request received for coinshistory userid" ,req.query.userid);
     try{
         const userData = await User_Data.find({ user: req.query.userid });
-        console.log("user coins data", userData);
+        // console.log("user coins data", userData);
         return res.status(200).json({ message : 'Coins ' ,success :'true' ,user: userData ,type :'Credit' })
     }catch(error){
      console.log(error);
@@ -707,7 +707,7 @@ app.post('/orderGenerated',AuthMiddleware, async (req, res) => {
 // });
 
 
-app.get('/order_record', AuthMiddleware,async (req, res)=> {
+app.get('/order_record',async (req, res)=> {
     console.log("request received for Order record", req.query.userid);
      try {
         // const userId = req.user._id;
@@ -1060,7 +1060,7 @@ app.get('/getVouchers', AuthMiddleware, async (req, res) => {
     const userId = req.query.userid; // Correctly scoped and declared
     console.log(userId);
     const vouchers = await VoucherCredited.find({ user: userId }).exec();
-    console.log(vouchers);
+    // console.log(vouchers);
     res.status(200).json(vouchers);
   } catch (error) {
     console.error('Error fetching vouchers:', error);
@@ -1069,13 +1069,14 @@ app.get('/getVouchers', AuthMiddleware, async (req, res) => {
 });
 
 app.get('/purchaseHistory',AuthMiddleware ,async(req,res)=>{
-  console.log("request received for vouchers");
+  console.log("request received for purchase history");
   try {
     const userId = req.query.userid; // Correctly scoped and declared
     console.log(userId);
     const userPurchase = await UserPurchase.find({ user: userId }).exec();
-    console.log(userPurchase);
-    res.status(200).json({type:'Debit',userPurchase:userPurchase});
+    console.log("User purchase ",userPurchase);
+    return res.status(200).json({ message : 'Coins ' ,success :'true' , userPurchase: userPurchase ,type :'Debit' })
+    // res.status(200).json({type:'Debit',userPurchase:userPurchase});
   } catch (error) {
     console.error('Error fetching purchase history:', error);
     res.status(500).json({ error: 'Internal Server Error' });
