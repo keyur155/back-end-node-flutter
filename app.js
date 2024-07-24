@@ -453,7 +453,6 @@ app.get('/esg' ,AuthMiddleware ,async(req,res)=>{
     console.log(error);
   }
 
-
 });
 
 
@@ -461,7 +460,7 @@ app.get('/coinshistory',AuthMiddleware ,async(req ,res)=>{
     console.log("request received for coinshistory userid" ,req.query.userid);
     try{
         const userData = await User_Data.find({ user: req.query.userid });
-        console.log("user coins data", userData);
+        // console.log("user coins data", userData);
         return res.status(200).json({ message : 'Coins ' ,success :'true' ,user: userData ,type :'Credit' })
     }catch(error){
      console.log(error);
@@ -706,8 +705,8 @@ app.post('/orderGenerated',AuthMiddleware, async (req, res) => {
 //   }
 // });
 
-
-app.get('/order_record', AuthMiddleware,async (req, res)=> {
+// 
+app.get('/order_record',AuthMiddleware,async (req, res)=> {
     console.log("request received for Order record", req.query.userid);
      try {
         // const userId = req.user._id;
@@ -729,8 +728,8 @@ app.get('/order_record', AuthMiddleware,async (req, res)=> {
 });
 
 
-app.post('/payment',AuthMiddleware, async(req,res)=>{
-  console.log("request received for payment upgrade userid" ,req.query.userid);
+app.post('/payment', async(req,res)=>{
+  console.log("request received for payment  userid" ,req.query.userid);
 
   const userId = req.query.userid;
   const amount = req.body['amount'];
@@ -770,43 +769,92 @@ app.get('/get-payment',async(req,res)=>{
   }
 });
 
-app.post('/update_status/:userId' , async (req, res) => {
+app.post('/update_status/:orderId' , async (req, res) => {
   console.log("update_status request received", req.body);
   try {
-      const userId = req.params.userId; // Use req.params.userId to get userId from route parameter
-      const updatedPayment = await payment.findByIdAndUpdate(
-          userId,
-          { $set: { paymentStatus: "success" } },
-          { new: true }
-      );
-      console.log(updatedPayment);
-      res.status(200).json(updatedPayment);
+      const orderId = req.params.orderId; // Use req.params.userId to get userId from route parameter
+      const updatedPayment = await payment.updateOne(
+        { orderId: orderId }, // Filter as an object
+        { $set: { paymentStatus: "success" } }
+    );
+    if (updatedPayment.matchedCount === 0) {
+        return res.status(404).json({ error: 'Document not found' });
+    }
+    console.log(updatedPayment);
+
+      // const updatedPayment = await payment.updateOne(
+      //     userId,
+      //     { $set: { paymentStatus: "success" } },
+      //     { new: true }
+      // );
+      // console.log(updatedPayment);
+      // res.status(200).json(updatedPayment);
   } catch (error) {
       console.error('Error updating payment status:', error);
       res.status(500).json({ error: 'Internal server error' });
   }
 });
 
+app.get('/get-payment-status',AuthMiddleware, async (req, res) => {
+  console.log("Request received for payment status", req.query.orderId);
+  const orderId = req.query.orderId;
+  console.log(orderId);
 
+  try {
+    const paymentRecord = await payment.findOne({ orderId: orderId }).exec();
+    console.log("User order status ", paymentRecord);
+
+    if (paymentRecord) {
+      const status = paymentRecord.paymentStatus;
+      console.log("status is",status);
+      if(status == 'pending'){
+        return res.status(200).json({ success: 'true', status: 'success' });
+      }
+      return res.status(200).json({ success: 'true', status: status });
+    } else {
+      return res.status(202).json({ success: 'false', status : "pending",message: 'Order not found' });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: 'false', message: 'Internal server error' });
+  }
+});
+
+
+// app.get('/get-payment-status' ,async(req ,res)=>{
+//   console.log("request received for payment status",req.query.orderId)
+//   const orderId = req.query.orderId;
+//   // Correctly scoped and declared
+//     console.log(orderId);
+//     const status = await payment.find({ orderId: orderId }).exec();
+//     console.log("status is  ",status);
+//     return res.status(200).json({ success :'true' , status :status});
+
+// });
+
+//  payment request that store on database
 app.post('/submit_cashback',AuthMiddleware, async (req, res) => {
   console.log("request received",req.body);
   try {
-    const {amount, upi, registeredPhone } = req.body;
+    const {amount, upi, registeredPhone ,orderId } = req.body;
     console.log("request received for payment upgrade userid" ,req.query.userid);
-
+    
     const userId = req.query.userid;
-
+    
     // Create a new cashback document
     const cashback = new Cashback({
       userId: userId,
       amount :amount,
       upi :upi,
       registeredPhone :registeredPhone,
+      orderId :orderId
     });
-
-    // Save the document to MongoDB
     await cashback.save();
 
+    const Payment = new payment({ userId, amount: amount, phoneNumber: registeredPhone ,orderId:orderId });
+    await Payment.save();
+
+    // Save the document to MongoDB
     // Sending a successful response
     res.status(200).json({ message: 'Cashback submitted successfully' });
   } catch (error) {
@@ -816,7 +864,7 @@ app.post('/submit_cashback',AuthMiddleware, async (req, res) => {
 });
 
 
-
+//  razor apis
 app.post('/transfer-cashback', async (req, res) => {
   const { userId,phoneNumber, transferAmount, accountDetails } = req.body; // accountDetails contains UPI ID or bank details
 
@@ -865,6 +913,7 @@ app.post('/transfer-cashback', async (req, res) => {
   }
 });
 
+// voucher checout procedure
 app.post('/checkoutVoucher', AuthMiddleware, async (req, res) => {
   console.log("request received and user id is", req.query.userid);
   const userId = req.query.userid;
@@ -892,7 +941,7 @@ app.post('/checkoutVoucher', AuthMiddleware, async (req, res) => {
 
     const available_coins = current_coins - product_price;
 
-    // Update user's echoCoins
+    // Update user's echoCoins 
     user.echoCoins = available_coins;
     await user.save();
 
@@ -929,6 +978,7 @@ app.post('/checkoutVoucher', AuthMiddleware, async (req, res) => {
       product_price,
       valid_from,
       valid_until,
+      offer,
       transaction_id: new mongoose.Types.ObjectId().toString(),
       is_active: true,
       is_redeemed: false,
@@ -948,7 +998,7 @@ app.post('/checkoutVoucher', AuthMiddleware, async (req, res) => {
 
     await userPurchase.save();
 
-    res.status(200).json({ success: true, message: 'Payment deducted and voucher added successfully' });
+    res.status(200).json({ success: true, message: 'Payment deducted and voucher added successfully', orderId :orderId });
 
   } catch (error) {
     console.error('Error processing voucher:', error);
@@ -1054,13 +1104,19 @@ app.post('/checkoutVoucher', AuthMiddleware, async (req, res) => {
 
 // });
 
+
+// 
+
+//  User voucher details data
+
+// 
 app.get('/getVouchers', AuthMiddleware, async (req, res) => {
   console.log("request received for vouchers");
   try {
     const userId = req.query.userid; // Correctly scoped and declared
     console.log(userId);
     const vouchers = await VoucherCredited.find({ user: userId }).exec();
-    console.log(vouchers);
+    // console.log(vouchers);
     res.status(200).json(vouchers);
   } catch (error) {
     console.error('Error fetching vouchers:', error);
@@ -1068,19 +1124,70 @@ app.get('/getVouchers', AuthMiddleware, async (req, res) => {
   }
 });
 
+
+//  Purchse history that display  on  debit coins
 app.get('/purchaseHistory',AuthMiddleware ,async(req,res)=>{
-  console.log("request received for vouchers");
+  console.log("request received for purchase history");
   try {
     const userId = req.query.userid; // Correctly scoped and declared
     console.log(userId);
     const userPurchase = await UserPurchase.find({ user: userId }).exec();
-    console.log(userPurchase);
-    res.status(200).json({type:'Debit',userPurchase:userPurchase});
+    console.log("User purchase ",userPurchase);
+    return res.status(200).json({ message : 'Coins ' ,success :'true' , userPurchase: userPurchase ,type :'Debit' })
+    // res.status(200).json({type:'Debit',userPurchase:userPurchase});
   } catch (error) {
     console.error('Error fetching purchase history:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 } );
+
+
+
+app.post('/redeem', async (req, res) => {
+  const { userId, coins, upiId } = req.body;
+
+  try {
+    // 1. Verify user and coin balance
+    const user = await getUserById(userId);
+    if (!user || user.coins < coins) {
+      return res.status(400).json({ error: 'Invalid user or insufficient coins' });
+    }
+
+    // 2. Calculate payout amount
+    const payoutAmount = convertCoinsToMoney(coins);
+
+    // 3. Create fund account for UPI
+    const fundAccount = await razorpay.fundAccounts.create({
+      contact_id: user.razorpayContactId,
+      account_type: 'vpa',
+      vpa: {
+        address: upiId
+      }
+    });
+
+    // 4. Create payout
+    const payout = await razorpay.payouts.create({
+      account_number: 'YOUR_RAZORPAY_ACCOUNT_NUMBER',
+      fund_account_id: fundAccount.id,
+      amount: payoutAmount * 100, // Amount in paise
+      currency: 'INR',
+      mode: 'UPI',
+      purpose: 'payout',
+      queue_if_low_balance: true,
+      reference_id: `PAYOUT_${userId}_${Date.now()}`,
+    });
+
+    // 5. Update user's coin balance
+    await updateUserCoinBalance(userId, -coins);
+
+    // 6. Send response
+    res.json({ success: true, payout: payout });
+
+  } catch (error) {
+    console.error('Error processing redemption:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 
  
