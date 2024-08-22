@@ -851,7 +851,7 @@ app.post('/submit_cashback',AuthMiddleware, async (req, res) => {
     });
     await cashback.save();
 
-    const Payment = new payment({ userId, amount: amount, phoneNumber: registeredPhone ,orderId:orderId });
+    const Payment = new payment({ userId, amount: amount, phoneNumber: registeredPhone ,orderId:orderId ,upi :upi });
     await Payment.save();
 
     // Save the document to MongoDB
