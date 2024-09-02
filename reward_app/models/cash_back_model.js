@@ -5,6 +5,7 @@ const cashbackSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
     upi: { type: String, required: true },
     registeredPhone: { type: String, required: true },
+    orderId:{type:String ,required:true},
   }, { timestamps: true });
   
   const Cashback = mongoose.model('Cashback', cashbackSchema);
