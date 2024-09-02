@@ -16,11 +16,14 @@ const VoucherCreatedSchema = new mongoose.Schema({
  brand:{
     type: 'String',
     require : true
-
  },
  voucher_code:{
     type: 'String',
     require : true
+ },
+ offer:{
+   type: 'String',
+   require : true
  },
  category:{
     type:'String',
@@ -52,6 +55,10 @@ valid_until: {
     type: Boolean,
     default: true,
     
+},
+imagePath :{
+   type: String,
+   require: true,
 },
 is_redeemed:{
     type: Boolean,
