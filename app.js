@@ -1437,13 +1437,53 @@ app.post('/admin/login' ,async(req,res) => {
       res.cookie('authToken', response.data.token, { httpOnly: true, secure: true, sameSite: 'strict' });
      
       console.log("response data if",response.data);
-      res.status(200).json({ success : true , message: 'Login successfull', token: response.data.token ,role : response.data.role});
+      res.status(200).json({ success : true , message: 'Login successfull', token: response.data.token ,role : response.data.role ,name :response.data.name});
     } 
     else if(response.status === 200 && response.data.success == false){
       console.log("response data else if",response.data);
       res.status(400).json({success : false, message: 'Invalid email or password' });
     } 
+    else {
+      console.log("en else part");
+      // Handle unexpected status codes
+      res.status(response.status).json({ message: 'Unexpected1 status code' });
+    }
+  } catch (error) {
+    if (error.response) {
+      
+      res.status(error.response.status).json({ message: error.response.data });
+    } else if (error.request) {
+      // The request was made, but no response was received
+      res.status(500).json({ message: 'No response received from the server' });
+    } else {
+      // Something happened in setting up the request that triggered an error
+      res.status(500).json({ message: 'Error in setting up the request' });
+    }
+
+    console.error('Error during login request:', error);
+  }
+})
+
+app.post('/admin/change-password' ,async(req,res) => {
+  try {
+    console.log("request received ",req.body);
+    const { password ,username} = req.body;
     
+    // Example of making an API request with axios
+    const response = await axios.post('https://www.reatmos.com/adminApis/change-password.php', {password ,username});
+    console.log("response data after url",response.data);
+    // console.log("response data after url1",response.data);
+    if (response.status === 200 && response.data.success == true) {
+      // Handle successful login
+      res.cookie('authToken', response.data.token, { httpOnly: true, secure: true, sameSite: 'strict' });
+     
+      console.log("response data if",response.data);
+      res.status(200).json({ success : true , message: 'update  successfull'});
+    } 
+    else if(response.status === 200 && response.data.success == false){
+      console.log("response data else if",response.data);
+      res.status(400).json({success : false, message: 'Invalid  password' });
+    } 
     else {
       console.log("en else part");
       // Handle unexpected status codes
