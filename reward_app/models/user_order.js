@@ -60,7 +60,9 @@ const OrderGeneratedSchema = new mongoose.Schema({
   quantity:{
    type:String,
   },
- Date: { type: Date, required: true },
+  orderStatus: { type: String, default: 'pending', required: true },
+ 
+  Date: { type: Date, required: true },
 },
  { timestamps: true }
 );

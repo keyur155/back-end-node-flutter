@@ -1380,6 +1380,57 @@ app.post('/admin/products', async (req, res) => {
   }
 });
 
+app.get('/admin/app-counter', async (req,res)=> {
+console.log("request received for app counter");
+try {
+  // Count the number of payments with 'pending' status
+  const pendingCount = await payment.countDocuments({ paymentStatus: 'pending' });
+  
+  // Count the number of payments with 'success' status
+  const successCount = await payment.countDocuments({ paymentStatus: 'success' });
+
+  const totalOrderReceived = pendingCount +  successCount;
+  const result = await UserPurchase.aggregate([
+    {
+        $group: {
+            _id: null, // Grouping by null to get a single result
+            ecoCoins: { $sum: { $toDouble: "$ecoCoins" } } // Convert to double if it's a string
+        }
+    }
+]);
+// Extract the total from the result
+const totalEcoCoinsPrice = result.length > 0 ? result[0].ecoCoins: 0;
+
+const successAmountResult = await payment.aggregate([
+  {
+      $match: { paymentStatus: 'success' } // Filter for successful payments
+  },
+  {
+      $group: {
+          _id: null, // Grouping by null to get a single result
+          totalSuccessAmount: { $sum: { $toDouble: "$amount" } } // Convert to double if it's a string
+      }
+  }
+]);
+const totalSuccessAmount = successAmountResult.length > 0 ? successAmountResult[0].totalSuccessAmount : 0;
+  // Send the counts in the response
+  res.json({
+      pendingCount,
+      successCount,
+      totalEcoCoinsPrice,
+      totalOrderReceived,
+      totalSuccessAmount
+
+
+  });
+} catch (error) {
+  console.error("Error fetching payment counts:", error);
+  res.status(500).json({ error: 'Internal server error' });
+}
+
+});
+
+// ******machine data  related apis
 app.get('/admin/get-machine-data', async(req,res)=>{
   console.log("request recived for get-machine-data");
   const { page = 1, limit = 10 } = req.query;
@@ -1394,7 +1445,7 @@ app.get('/admin/get-machine-data', async(req,res)=>{
           limit
       }
   });
-    console.log("received data are", response)
+    // console.log("received data are", response)
     // Send the data received from the PHP API back to the client
     res.json(response.data);
 } catch (error) {
@@ -1403,6 +1454,34 @@ app.get('/admin/get-machine-data', async(req,res)=>{
 }
 
 })
+
+app.get('/admin/get-filtered-data', async(req,res)=>{
+  console.log("request recived for get-FILTERD-data");
+  const { startDate , endDate,mcid,city,page,limit } = req.query;
+  try {
+    const phpApiUrl = 'https://www.reatmos.com';
+    // Make a GET request to the PHP API
+    // const response = await axios.get(`${phpApiUrl}/adminApis/FetchMachineData.php`); // Adjust the endpoint as needed
+
+    const response = await axios.get(`${phpApiUrl}/adminApis/getFilteredData.php`, {
+      params: {
+        startDate, 
+        endDate,
+        mcid,
+        city,
+        page,
+        limit
+      }
+  });
+    console.log("received data FOR filtered", response.data)
+    // Send the data received from the PHP API back to the client
+    res.json(response.data);
+} catch (error) {
+    console.error('Error fetching data from PHP API:', error);
+    res.status(500).json({ message: 'Error fetching data' });
+}
+
+});
 
 app.get('/admin/get-total-counter' , async(req ,res) =>{
  try {
@@ -1503,7 +1582,7 @@ app.post('/admin/change-password' ,async(req,res) => {
 
     console.error('Error during login request:', error);
   }
-})
+});
 
 app.post('/index' ,AuthMiddleware,async(req,res)=>{
 console.log("request received for token check",req);
