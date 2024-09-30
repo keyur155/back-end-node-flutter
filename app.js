@@ -1285,6 +1285,41 @@ app.get('/admin/get-categories', async(req,res) =>{
   }
 });
 
+app.put('/admin/update-category', async (req, res) => {
+  try {
+    
+    const {oldName, newName } = req.body; // Assuming you're sending the new name in the request body
+    if (!oldName || !newName) {
+      return res.status(400).json({ message: 'Both oldName and newName are required' });
+    }
+    const updatedCategory = await Category.findOneAndUpdate(
+      { name: oldName }, // Find the category with the old name
+      { name: newName }, // Update to the new name
+      { new: true } // Return the updated document
+    );
+    if (!updatedCategory) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    res.status(200).json(updatedCategory);
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating category', error });
+  }
+});
+
+app.delete('/admin/delete-category', async (req, res) => {
+  try {
+    const { name } = req.body; ;
+    const result = await Category.findOneAndDelete(name);
+    if (!result) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    res.status(200).json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting category', error });
+  }
+});
+
+
 app.get('/admin/get-product-info', async(req,res) =>{
   console.log("request received product info");
   try {
@@ -1355,8 +1390,6 @@ app.post('/admin/delete-product', async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 });
-
-
 
 
 app.post('/admin/products', async (req, res) => {
@@ -1455,33 +1488,58 @@ app.get('/admin/get-machine-data', async(req,res)=>{
 
 })
 
-app.get('/admin/get-filtered-data', async(req,res)=>{
-  console.log("request recived for get-FILTERD-data");
-  const { startDate , endDate,mcid,city,page,limit } = req.query;
+// app.get('/admin/get-filtered-data', async(req,res)=>{
+//   console.log("request recived for get-FILTERD-data");
+//   const { startDate , endDate,mcid,city,page,limit } = req.query;
+//   try {
+//     const phpApiUrl = 'https://www.reatmos.com';
+  
+//     const response = await axios.get(`${phpApiUrl}/adminApis/getFilteredData.php`, {
+//       params: {
+//         startDate, 
+//         endDate,
+//         mcid,
+//         city,
+//         page,
+//         limit
+//       }
+//   });
+//     console.log("received data FOR filtered", response.data)
+//     // Send the data received from the PHP API back to the client
+//     res.json(response.data);
+// } catch (error) {
+//     console.error('Error fetching data from PHP API:', error);
+//     res.status(500).json({ message: 'Error fetching data' });
+// }
+
+// });
+
+app.get('/admin/get-filtered-data', async (req, res) => {
+  console.log("Request received for get-FILTERD-data");
+  const { startDate, endDate, mcid, city, page, limit } = req.query;
+  console.log("Received request parameters:", { startDate, endDate, mcid, city, page, limit });
+
   try {
-    const phpApiUrl = 'https://www.reatmos.com';
-    // Make a GET request to the PHP API
-    // const response = await axios.get(`${phpApiUrl}/adminApis/FetchMachineData.php`); // Adjust the endpoint as needed
+      const phpApiUrl = 'https://www.reatmos.com';
+      const response = await axios.get(`${phpApiUrl}/adminApis/getFilteredData.php`, {
+          params: {
+              startDate,
+              endDate,
+              mcid,
+              city,
+              page,
+              limit
+          }
+      });
 
-    const response = await axios.get(`${phpApiUrl}/adminApis/getFilteredData.php`, {
-      params: {
-        startDate, 
-        endDate,
-        mcid,
-        city,
-        page,
-        limit
-      }
-  });
-    console.log("received data FOR filtered", response.data)
-    // Send the data received from the PHP API back to the client
-    res.json(response.data);
-} catch (error) {
-    console.error('Error fetching data from PHP API:', error);
-    res.status(500).json({ message: 'Error fetching data' });
-}
-
+      console.log("Received data from PHP API:", response.data);
+      res.json(response.data);
+  } catch (error) {
+      console.error('Error fetching data from PHP API:', error);
+      res.status(500).json({ message: 'Error fetching data' });
+  }
 });
+
 
 app.get('/admin/get-total-counter' , async(req ,res) =>{
  try {
@@ -1505,10 +1563,10 @@ app.get('/admin/get-total-counter' , async(req ,res) =>{
 app.post('/admin/login' ,async(req,res) => {
   try {
     console.log("request received ",req.body);
-    const { email, password ,username} = req.body;
+    const {  password ,username} = req.body;
     
     // Example of making an API request with axios
-    const response = await axios.post('https://www.reatmos.com/adminApis/adminAuth.php', { email, password ,username});
+    const response = await axios.post('https://www.reatmos.com/adminApis/adminAuth.php', { password ,username});
     console.log("response data after url",response.data);
     // console.log("response data after url1",response.data);
     if (response.status === 200 && response.data.success == true) {
@@ -1516,11 +1574,11 @@ app.post('/admin/login' ,async(req,res) => {
       res.cookie('authToken', response.data.token, { httpOnly: true, secure: true, sameSite: 'strict' });
      
       console.log("response data if",response.data);
-      res.status(200).json({ success : true , message: 'Login successfull', token: response.data.token ,role : response.data.role ,name :response.data.name});
+      res.status(200).json({ success : true , message: 'Login successfull', token: response.data.token ,role : response.data.role ,name :response.data.name , areaDetails :response.data.area_details});
     } 
     else if(response.status === 200 && response.data.success == false){
       console.log("response data else if",response.data);
-      res.status(400).json({success : false, message: 'Invalid email or password' });
+      res.status(400).json({success : false, message: 'Invalid username  or password' });
     } 
     else {
       console.log("en else part");
