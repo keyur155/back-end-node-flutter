@@ -25,6 +25,7 @@ const Product =  require('./reward_app/models/product_model.js');
 const Category =require('./reward_app/models/category_model.js');
 const axios = require('axios');
 
+
 // const cloudinary = require('cloudinary').v2; // Use .v2 to access the Cloudinary API
 // const { Readable } = require('stream');
 // const { Readable } = require('stream');
@@ -1224,38 +1225,88 @@ app.get('/get-order-admin' ,async(req, res)=>{
 
 });
 
-// app.post('/admin/upload' ,async(req,res)=>{
-//   console.log("request received for uploading image");
-// })
-
-app.post('/admin/upload', upload.single('image'), async (req, res) => {
+app.post('/admin/upload', upload, async (req, res) => {
+  console.log("request received for upload image");
   try {
-    if (!req.file) {
-      return res.status(400).send("No file uploaded");
-    }
-    cloudinary.uploader.upload(req.file.path,function(err,result){
-              if(err){
-                console.log(err);
-                return res.status(500).json({
-                success :false,
-                message:"Error"
-              });
+      if (!req.file) {
+          return res.status(400).send("No file uploaded");
+      }
+
+      // If using memory storage, upload directly from buffer
+      if (req.file.buffer) {
+          // Upload to Cloudinary from buffer
+          cloudinary.uploader.upload_stream({ resource_type: 'image' }, (err, result) => {
+              if (err) {
+                  console.log(err);
+                  return res.status(500).json({
+                      success: false,
+                      message: "Error uploading to Cloudinary"
+                  });
               }
-              // console.log("response ",res)
+
               const imageUrl = result.secure_url;
-              console.log("Image url is",imageUrl);
+              console.log("Image URL is", imageUrl);
               res.status(200).json({
-                success:true,
-                message:"Success",
-                imageUrl :imageUrl
+                  success: true,
+                  message: "Success",
+                  imageUrl: imageUrl
               });
-    })
-   
+          }).end(req.file.buffer); // Send the buffer to Cloudinary
+      } else {
+          // If using disk storage, upload from file path
+          cloudinary.uploader.upload(req.file.path, (err, result) => {
+              if (err) {
+                  console.log(err);
+                  return res.status(500).json({
+                      success: false,
+                      message: "Error uploading to Cloudinary"
+                  });
+              }
+
+              const imageUrl = result.secure_url;
+              console.log("Image URL is", imageUrl);
+              res.status(200).json({
+                  success: true,
+                  message: "Success",
+                  imageUrl: imageUrl
+              });
+          });
+      }
   } catch (error) {
-    console.error('Error uploading image:', error);
-    res.status(500).json({ error: 'Upload failed' });
+      console.error('Error uploading image:', error);
+      res.status(500).json({ error: 'Upload failed' });
   }
 });
+
+
+// app.post('/admin/upload', upload.single('image'), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).send("No file uploaded");
+//     }
+//     cloudinary.uploader.upload(req.file.path,function(err,result){
+//               if(err){
+//                 console.log(err);
+//                 return res.status(500).json({
+//                 success :false,
+//                 message:"Error"
+//               });
+//               }
+//               // console.log("response ",res)
+//               const imageUrl = result.secure_url;
+//               console.log("Image url is",imageUrl);
+//               res.status(200).json({
+//                 success:true,
+//                 message:"Success",
+//                 imageUrl :imageUrl
+//               });
+//     })
+   
+//   } catch (error) {
+//     console.error('Error uploading image:', error);
+//     res.status(500).json({ error: 'Upload failed' });
+//   }
+// });
 
 app.post('/admin/category',async(req,res) => {
   console.log("request received for category",req.body);
