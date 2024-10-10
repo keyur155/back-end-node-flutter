@@ -986,7 +986,7 @@ app.post('/checkoutVoucher', AuthMiddleware, async (req, res) => {
     // Set voucher validity dates
     const valid_from = new Date();
     const valid_until = new Date();
-    valid_until.setDate(valid_from.getDate() + 7);
+    valid_until.setDate(valid_from.getDate() + 90);
 
     // Create a new VoucherCredited entry
     const voucher = new VoucherCredited({
