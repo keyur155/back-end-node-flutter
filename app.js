@@ -24,6 +24,10 @@ const cloudinary = require("./reward_app/config/cloudinary.js");
 const Product =  require('./reward_app/models/product_model.js');
 const Category =require('./reward_app/models/category_model.js');
 const axios = require('axios');
+const Contact = require('./reward_app/models/razorpay_contact.js');
+const FundAccount = require('./reward_app/models/fund_account.js');
+const PaymentSuccess = require('./reward_app/models/payout.model.js');
+const paymentFailure = require('./reward_app/models/paymentFailure.model.js');
 
 // const cloudinary = require('cloudinary').v2; // Use .v2 to access the Cloudinary API
 // const { Readable } = require('stream');
@@ -69,47 +73,185 @@ mongoose.connect(process.env.MONGODB_URI, { family: 4 }).then(
 ).catch((error) => { console.log(error);
 });
 
-app.post('/login', async( req ,res ) =>{
+// app.post('/login', async( req ,res ) =>{
 
-console.log("request received", req.body);
-    try {
-      // Find user by username
-      const { phoneNumber} = req.body ;
-      if (!req.body || !req.body.phoneNumber) {
-              throw new Error('Phone number is missing in request body');
-            }
+// console.log("request received", req.body);
+//     try {
+//       // Find user by username
+//       const { phoneNumber} = req.body ;
+//       if (!req.body || !req.body.phoneNumber) {
+//               throw new Error('Phone number is missing in request body');
+//             }
 
-      const user = await User.findOne({phoneNumber});
-      if (!user) {
-        var response = await sendOtp(req.body.phoneNumber);
-        if(response.type == 'success'){
-             return res.status(200).json({ message : 'OTP sent successfully. Please verify your phone number' ,
-                      success :'true'
-                });
-        }
-        else {
-            print("else part");
-            return res.status(200).json({ message : 'OTP sent successfully. Please verify your phone number' ,
-                success :'true'
-            });
+//       const user = await User.findOne({phoneNumber});
+//       if (!user) {
+//         var response = await sendOtp(req.body.phoneNumber);
+//         if(response.type == 'success'){
+//              return res.status(200).json({ message : 'OTP sent successfully. Please verify your phone number' ,
+//                       success :'true'
+//                 });
+//         }
+//         else {
+//             print("else part");
+//             return res.status(200).json({ message : 'OTP sent successfully. Please verify your phone number' ,
+//                 success :'true'
+//             });
 
-        }
+//         }
 
-      }
+//       }
 
-      console.log({phoneNumber});
+//       console.log({phoneNumber});
 
-     await sendOtp(req.body.phoneNumber);
-      return res.status(200).json({ message : 'OTP sent successfully. Please verify your phone number' ,
-      success :'true'
-      });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message : 'Internal server error' });
+//      await sendOtp(req.body.phoneNumber);
+//       return res.status(200).json({ message : 'OTP sent successfully. Please verify your phone number' ,
+//       success :'true'
+//       });
+//     } catch (error) {
+//       console.error(error);
+//       return res.status(500).json({ message : 'Internal server error' });
+//     }
+
+// });
+
+// app.post('/login', async(req, res) => {
+  
+//   try {
+//     console.log("body ",req.body);
+//     const{phoneNumber ,email} = req.body;
+    
+//     if(!req.body || !req.body.phoneNumber || !req.body.email){
+//       throw new Error("Phone Number or Email Missing");
+//     }
+
+//      // Find users by email and phone number
+//      const userByEmail = await User.findOne({ email });
+//      const userByPhone = await User.findOne({ phoneNumber});
+     
+//      if (userByEmail && userByPhone) {
+//       // Both users found, check if they are the same
+//       if (userByEmail._id.toString() !== userByPhone._id.toString()) {
+//           return res.status(401).json({ message: 'Invalid credentials: email and phone number do not match.' });
+//       }
+//   } else if (userByEmail && !userByPhone) {
+//       // Email found but phone not found
+//       return res.status(401).json({ message: 'Invalid credentials: phone number not found.' });
+//   } else if (!userByEmail && userByPhone) {
+//       // Phone found but email not found
+//       return res.status(401).json({ message: 'Invalid credentials: email not found.' });
+//   }
+
+//       // If user does not exist, create a new user
+//   let user;
+//   var otp ;
+//   let target, type ,cleanedPhoneNumber;
+//   if (!userByEmail && !userByPhone) {
+//         user = new User({ phoneNumber, email });
+//         await user.save();
+//         if (phoneNumber.startsWith('+91')) {
+//           const cleanedPhoneNumber = phoneNumber.replace('+91', '');
+//           target = cleanedPhoneNumber; // Send OTP to phone number
+//           type = 'phone'; // Sending OTP to phone
+//         } else {
+//           target = email; // Send OTP to email
+//           type = 'email'; // Sending OTP to email
+//         }
+
+//         otp = await sendOtp(target, type);
+//         console.log("otp is", otp);
+//     } else {
+//       // If either userByEmail or userByPhone exists, use that user
+      
+//       if (phoneNumber.startsWith('+91')) {
+//         const cleanedPhoneNumber = phoneNumber.replace('+91', '');
+//         target = cleanedPhoneNumber; // Send OTP to phone number
+//         type = 'phone'; // Sending OTP to phone
+//       } else {
+//         target = email; // Send OTP to email
+//         type = 'email'; // Sending OTP to email
+//       }
+//       otp  = await sendOtp(target, type);
+//       console.log("else otp is", otp);
+//       }
+      
+      
+
+//       // Save OTP and its expiry time to the user
+//       user.otp = otp.otp;
+//       user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+//       await user.save();
+//       return res.status(200).json({ message : 'OTP sent successfully. Please verify your phone number' ,
+//       success :'true'
+//       });
+
+//   } catch (error) {
+//     console.log(error);
+    
+//     return res.status(500).json({ message : 'Internal server error' });
+//   }
+// })
+
+
+app.post('/login', async (req, res) => {
+  try {
+    console.log("body ", req.body);
+    const { phoneNumber, email } = req.body;
+
+    // Validate input
+    if (!phoneNumber || !email) {
+      return res.status(400).json({ message: "Phone Number or Email Missing" });
     }
 
-});
+    // Find users by email and phone number
+    const userByEmail = await User.findOne({ email });
+    const userByPhone = await User.findOne({ phoneNumber });
 
+    // Check for user existence and validity
+    if (userByEmail && userByPhone) {
+      if (userByEmail._id.toString() !== userByPhone._id.toString()) {
+        return res.status(401).json({ message: 'Invalid credentials: email and phone number do not match.' });
+      }
+    } else if (userByEmail) {
+      
+      return res.status(400).json({ message: 'Invalid credentials: phone number not found.' });
+    } else if (userByPhone) {
+      return res.status(400).json({ message: 'Invalid credentials: email not found.' });
+    }
+
+    // If user does not exist, create a new user
+    let user = userByEmail || userByPhone || new User({ phoneNumber, email });
+    if (!userByEmail && !userByPhone) {
+      await user.save();
+    }
+
+    // Determine target and type for OTP
+    let target, type;
+    if (phoneNumber.startsWith('+91')) {
+      target = phoneNumber.replace('+91', ''); // Cleaned phone number
+      type = 'phone'; // Sending OTP to phone
+    } else {
+      target = email; // Send OTP to email
+      type = 'email'; // Sending OTP to email
+    }
+
+    // Send OTP
+    const otpResponse = await sendOtp(target, type);
+    if (!otpResponse || !otpResponse.otp) {
+      return res.status(500).json({ message: 'Failed to generate OTP.', type: 'error' });
+    }
+
+    // Save OTP and its expiry time to the user
+    user.otp = otpResponse.otp; // Assuming otpResponse.otp is the correct OTP
+    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+    await user.save();
+
+    return res.status(200).json({ message: 'OTP sent successfully. Please verify your phone number.', success: 'true' });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 app.post('/resendOTP', async( req ,res ) =>{
 
@@ -138,75 +280,75 @@ console.log("request received", req.body);
 
 });
 
-app.post('/verifyOTP', async (req, res) => {
-  console.log("Request received", req.body);
+// app.post('/verifyOTP', async (req, res) => {
+//   console.log("Request received", req.body);
 
-  try {
-    const { phoneNumber, otp } = req.body;
+//   try {
+//     const { phoneNumber, otp } = req.body;
 
-    // Validate request body
-    if (!phoneNumber || !otp) {
-      console.error("Phone number or OTP is missing in request body");
-      return res.status(400).json({ message: 'Phone number or OTP is missing in request body', type: 'error' });
-    }
+//     // Validate request body
+//     if (!phoneNumber || !otp) {
+//       console.error("Phone number or OTP is missing in request body");
+//       return res.status(400).json({ message: 'Phone number or OTP is missing in request body', type: 'error' });
+//     }
 
-    console.log("Phone number from request body:", phoneNumber);
+//     console.log("Phone number from request body:", phoneNumber);
 
-    // Verify OTP
-    const result = await verifyOTP(phoneNumber, otp);
-    console.log("Result of OTP verification:", result);
+//     // Verify OTP
+//     const result = await verifyOTP(phoneNumber, otp);
+//     console.log("Result of OTP verification:", result);
 
-    if (result.type === 'error') {
-      console.error("Invalid OTP");
-      return res.status(400).json({ message: result.message, type: 'error' });
-    }
+//     if (result.type === 'error') {
+//       console.error("Invalid OTP");
+//       return res.status(400).json({ message: result.message, type: 'error' });
+//     }
 
-    // Ensure phoneNumber is not null or undefined
-    if (!phoneNumber) {
-      console.error("Phone number is null or undefined after OTP verification");
-      return res.status(400).json({ message: 'Phone number cannot be null or undefined', type: 'error' });
-    }
+//     // Ensure phoneNumber is not null or undefined
+//     if (!phoneNumber) {
+//       console.error("Phone number is null or undefined after OTP verification");
+//       return res.status(400).json({ message: 'Phone number cannot be null or undefined', type: 'error' });
+//     }
 
-    // Find or create user
-    let user = await User.findOne({ phoneNumber }).select('phoneNumber echoCoins');
-    console.log("User found:", user);
+//     // Find or create user
+//     let user = await User.findOne({ phoneNumber }).select('phoneNumber echoCoins');
+//     console.log("User found:", user);
 
-    if (!user) {
-      console.log("Attempting to create a new user with phone number:", phoneNumber);
+//     if (!user) {
+//       console.log("Attempting to create a new user with phone number:", phoneNumber);
 
-      // Final check to ensure phoneNumber is valid before creating a new user
-      if (!phoneNumber) {
-        console.error("Phone number is invalid right before creating new user");
-        return res.status(400).json({ message: 'Phone number is invalid', type: 'error' });
-      }
+//       // Final check to ensure phoneNumber is valid before creating a new user
+//       if (!phoneNumber) {
+//         console.error("Phone number is invalid right before creating new user");
+//         return res.status(400).json({ message: 'Phone number is invalid', type: 'error' });
+//       }
 
-      const newUser = new User({ phoneNumber, echoCoins: 0 });
-      user = await newUser.save();
-      console.log("New user created:", user);
-    }
+//       const newUser = new User({ phoneNumber, echoCoins: 0 });
+//       user = await newUser.save();
+//       console.log("New user created:", user);
+//     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id, phoneNumber: user.phoneNumber },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+//     // Generate JWT token
+//     const token = jwt.sign(
+//       { userId: user._id, phoneNumber: user.phoneNumber },
+//       process.env.JWT_SECRET,
+//       { expiresIn: '24h' }
+//     );
 
-    console.log("Token generated for user:", token);
+//     console.log("Token generated for user:", token);
 
-    return res.status(200).json({
-      message: 'OTP verified successfully.',
-      success: 'true',
-      userId: user._id,
-      phoneNumber: user.phoneNumber,
-      echoCoins: user.echoCoins || 0,
-      token
-    });
-  } catch (error) {
-    console.error("Error during OTP verification and user handling:", error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-});
+//     return res.status(200).json({
+//       message: 'OTP verified successfully.',
+//       success: 'true',
+//       userId: user._id,
+//       phoneNumber: user.phoneNumber,
+//       echoCoins: user.echoCoins || 0,
+//       token
+//     });
+//   } catch (error) {
+//     console.error("Error during OTP verification and user handling:", error);
+//     return res.status(500).json({ message: 'Internal server error' });
+//   }
+// });
 
 
 // app.post('/verifyOTP', async( req ,res ) =>{
@@ -254,7 +396,65 @@ app.post('/verifyOTP', async (req, res) => {
 //     }
 
 // });
+app.post('/verifyOTP', async (req, res) => {
+  console.log("request received", req.body);
+  try {
+      const { phoneNumber, email, otp } = req.body;
 
+      if (!phoneNumber && !email) {
+          return res.status(400).json({ message: 'Phone number or email is required' });
+      }
+
+      if (!otp) {
+          return res.status(400).json({ message: 'OTP is required' });
+      }
+
+      let user;
+      if (email) {
+          user = await User.findOne({ email });
+      } else {
+          user = await User.findOne({ phoneNumber });
+      }
+
+      if (!user) {
+          return res.status(400).json({ message: 'User not found' });
+      }
+
+      if (user.otp !== otp) {
+          return res.status(400).json({ message: 'Invalid OTP' });
+      }
+
+      if (new Date() > user.otpExpiry) {
+          return res.status(400).json({ message: 'OTP has expired' });
+      }
+      console.log("user saved otp",user.otp);
+      // OTP is valid
+      user.otp = undefined;
+      user.otpExpiry = undefined;
+      await user.save();
+
+      // Generating JSON token
+      const token = jwt.sign(
+          { userId: user._id, phoneNumber: user.phoneNumber },
+          process.env.JWT_SECRET,
+          { expiresIn: '24h' } // Set token expiration time as needed
+      );
+
+      return res.status(200).json({
+          message: 'OTP verified successfully.',
+          success: 'true',
+          userId: user._id,
+          phoneNumber: user.phoneNumber,
+          email:user.email,
+          echoCoins: user.echoCoins || 0,
+          token
+      });
+
+  } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Internal server error' });
+  }
+});
 app.post('/QRdata', AuthMiddleware, async (req, res) => {
   console.log("request received QRdata userid", req.query.userid);
   console.log("request received QRdata", req);
@@ -445,6 +645,7 @@ app.post('/QRdata', AuthMiddleware, async (req, res) => {
 // }
 
 // });
+
 
 
 app.get('/coins' ,AuthMiddleware,async(req,res)=>{
@@ -812,6 +1013,8 @@ app.post('/update_status/:orderId' , async (req, res) => {
   }
 });
 
+
+
 app.get('/get-payment-status', async (req, res) => {
   console.log("Request received for payment status", req.query.orderId);
   const orderId = req.query.orderId;
@@ -919,9 +1122,7 @@ app.post('/transfer-cashback', async (req, res) => {
     );
 
     if (transferResponse.data.status === 'processing') {
-      // Update user's cashback balance
-      // user.cashbackBalance -= transferAmount;
-      // await user.save();
+     
       res.json({ success: true, message: 'Cashback transferred successfully' });
     } else {
       res.status(400).json({ success: false, message: 'Transfer failed' });
@@ -1162,6 +1363,20 @@ app.get('/purchaseHistory',AuthMiddleware ,async(req,res)=>{
   }
 } );
 
+app.get('/payment-history', AuthMiddleware ,async (req, res) => {
+  console.log("request received for payment-history",req.query.userid);
+  const userId = req.query.userid; // Correctly scoped and declared
+  console.log(userId);
+  try {
+      const payments = await PaymentSuccess.find({ user: userId  }).sort({ timestamp: -1 });
+       // Fetch payments for the user, sorted by time
+       console.log("payment log",payments);
+      res.json({ success: true,payments: payments });
+  } catch (error) {
+  console.log("error is ",error);
+      res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 
 app.post('/redeem', async (req, res) => {
@@ -1224,38 +1439,88 @@ app.get('/get-order-admin' ,async(req, res)=>{
 
 });
 
-// app.post('/admin/upload' ,async(req,res)=>{
-//   console.log("request received for uploading image");
-// })
-
-app.post('/admin/upload', upload.single('image'), async (req, res) => {
+app.post('/admin/upload', upload, async (req, res) => {
+  console.log("request received for upload image");
   try {
-    if (!req.file) {
-      return res.status(400).send("No file uploaded");
-    }
-    cloudinary.uploader.upload(req.file.path,function(err,result){
-              if(err){
-                console.log(err);
-                return res.status(500).json({
-                success :false,
-                message:"Error"
-              });
+      if (!req.file) {
+          return res.status(400).send("No file uploaded");
+      }
+
+      // If using memory storage, upload directly from buffer
+      if (req.file.buffer) {
+          // Upload to Cloudinary from buffer
+          cloudinary.uploader.upload_stream({ resource_type: 'image' }, (err, result) => {
+              if (err) {
+                  console.log(err);
+                  return res.status(500).json({
+                      success: false,
+                      message: "Error uploading to Cloudinary"
+                  });
               }
-              // console.log("response ",res)
+
               const imageUrl = result.secure_url;
-              console.log("Image url is",imageUrl);
+              console.log("Image URL is", imageUrl);
               res.status(200).json({
-                success:true,
-                message:"Success",
-                imageUrl :imageUrl
+                  success: true,
+                  message: "Success",
+                  imageUrl: imageUrl
               });
-    })
-   
+          }).end(req.file.buffer); // Send the buffer to Cloudinary
+      } else {
+          // If using disk storage, upload from file path
+          cloudinary.uploader.upload(req.file.path, (err, result) => {
+              if (err) {
+                  console.log(err);
+                  return res.status(500).json({
+                      success: false,
+                      message: "Error uploading to Cloudinary"
+                  });
+              }
+
+              const imageUrl = result.secure_url;
+              console.log("Image URL is", imageUrl);
+              res.status(200).json({
+                  success: true,
+                  message: "Success",
+                  imageUrl: imageUrl
+              });
+          });
+      }
   } catch (error) {
-    console.error('Error uploading image:', error);
-    res.status(500).json({ error: 'Upload failed' });
+      console.error('Error uploading image:', error);
+      res.status(500).json({ error: 'Upload failed' });
   }
 });
+
+
+// app.post('/admin/upload', upload.single('image'), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).send("No file uploaded");
+//     }
+//     cloudinary.uploader.upload(req.file.path,function(err,result){
+//               if(err){
+//                 console.log(err);
+//                 return res.status(500).json({
+//                 success :false,
+//                 message:"Error"
+//               });
+//               }
+//               // console.log("response ",res)
+//               const imageUrl = result.secure_url;
+//               console.log("Image url is",imageUrl);
+//               res.status(200).json({
+//                 success:true,
+//                 message:"Success",
+//                 imageUrl :imageUrl
+//               });
+//     })
+   
+//   } catch (error) {
+//     console.error('Error uploading image:', error);
+//     res.status(500).json({ error: 'Upload failed' });
+//   }
+// });
 
 app.post('/admin/category',async(req,res) => {
   console.log("request received for category",req.body);
@@ -1641,6 +1906,238 @@ app.post('/admin/change-password' ,async(req,res) => {
     console.error('Error during login request:', error);
   }
 });
+
+
+// **********************************Razor pay APIS**********************
+
+
+app.post('/create-contact', async (req, res) => {
+
+  const { username, email, phoneNumber, orderId } = req.body;
+  console.log("request received for create contact",req.body);
+  const userId ="6676c009608ec42288d203ea";
+  // Validate phone number
+  if (!phoneNumber) {
+    return res.status(400).json({ message: 'Phone number is required' });
+  }
+
+  let data = JSON.stringify({
+    "name": username,
+    "email": email || '',
+    "contact": `91${phoneNumber}`, // Ensure phoneNumber is valid
+    "type": "customer",
+    "reference_id": orderId,
+    "notes": {
+      "random_key_1": "Make it so.",
+      "random_key_2": "Tea. Earl Grey. Hot."
+    }
+  });
+
+  // Construct the authorization header
+  const apiKey = process.env.RAZORPAY_KEY_ID;
+  const apiSecret = process.env.RAZORPAY_SECRET;
+  console.log('Razorpay Key ID:', process.env.RAZORPAY_KEY_ID);
+  console.log('Razorpay Secret:', process.env.RAZORPAY_SECRET);
+
+  const authHeader = `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')}`;
+
+  let config = {
+    method: 'post',
+    maxBodyLength: Infinity,
+    url: 'https://api.razorpay.com/v1/contacts',
+    headers: {
+      'Authorization': authHeader,
+      'Content-Type': 'application/json'
+    },
+    data: data
+  };
+
+    try {
+      // Check if the contact already exists for the user
+      const existingContact = await Contact.findOne({ user: userId }).exec();
+      
+      if (!existingContact) {
+        // Make the API request to create the contact
+        const response = await axios.request(config);
+        
+        // Create a new contact in your database
+        const newContact = new Contact({
+          user: userId,
+          contact_id: response.data.id,
+          customer_name: response.data.name,
+          phoneNumber: response.data.contact, // Use the correct field from response
+          reference_id: response.data.reference_id
+        });
+  
+        await newContact.save();
+        
+        return res.status(201).json({ message: 'Contact registered', data: response.data }); // Send success response
+      }
+      else {
+        console.log("existing contact",existingContact)
+        return res.status(409).json({ message: 'Contact already exists' ,data :existingContact }); // Conflict response
+      }
+    } catch (error) {
+      console.error('Error creating contact:', error.response ? error.response.data : error.message);
+      res.status(500).json({ message: 'Error creating contact', error: error.response ? error.response.data : error.message });
+    }
+   
+
+});
+
+
+app.post('/fund-account' ,async(req ,res) => {
+  const {contact_id , address} = req.body;
+  console.log("request received fund account",req.body);
+  const apiKey = process.env.RAZORPAY_KEY_ID;
+  const apiSecret = process.env.RAZORPAY_SECRET;
+  console.log('Razorpay Key ID:', process.env.RAZORPAY_KEY_ID);
+  console.log('Razorpay Secret:', process.env.RAZORPAY_SECRET);
+  try {
+  let fundAccount = await FundAccount.findOne({ contact: contact_id });
+  if (fundAccount) {
+    console.log(fundAccount.fundAccountId);
+    return res.status(200).json({ message: 'Fund account already exists', fundAccountId: fundAccount.fundAccountId });
+  }
+
+  const authHeader = `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')}`;
+
+  let data = JSON.stringify({
+    "contact_id": contact_id,
+    "account_type": "vpa",
+    "vpa": {
+      "address": address
+    }
+  });
+  
+  let config = {
+    method: 'post',
+    maxBodyLength: Infinity,
+    url: 'https://api.razorpay.com/v1/fund_accounts',
+    headers: { 
+      'Content-Type': 'application/json', 
+      'Authorization': authHeader
+    },
+    data : data
+  };
+  const response = await axios.request(config);
+    const fundAccountData = response.data;
+
+    // Save fund account details to database
+    fundAccount = new FundAccount({
+      // user: req.user._id, // Assuming user ID is available in the request
+      contact: contact_id,
+      fundAccountId: fundAccountData.id,
+      upiAddress: address
+    });
+    await fundAccount.save();
+
+    return res.status(201).json({ message: 'Fund account created', fundAccountId: fundAccountData.id });
+  
+  // axios.request(config)
+  // .then((response) => {
+  //   console.log(JSON.stringify(response.data));
+  //   return res.status(201).json({ message: 'fund_account created', data: response.data });
+  // })
+  // .catch((error) => {
+  //   console.log(error);
+  //   return res.status(500).json({ message: 'Internal server error', data: error });
+  // });
+}catch (error) {
+  console.error(error);
+  return res.status(500).json({ message: 'Internal server error' });
+}
+
+ 
+})
+
+app.post('/payout',async(req,res) =>{
+
+  const {fundAccount_id , amount,orderId} = req.body;
+  console.log("request received for payment upgrade userid" ,req.query.userid);
+    
+    const userId = req.query.userid;
+  console.log("request received payout",req.body);
+  let data = JSON.stringify({
+    "account_number": 2323230086959145,
+    "fund_account_id": fundAccount_id,
+    "amount": amount * 100,
+    "currency": "INR",
+    "mode": "UPI",
+    "purpose": "refund",
+    "queue_if_low_balance": true,
+    "reference_id": "Acme Transaction ID 12345",
+    "narration": "Acme Corp Fund Transfer",
+    "notes": {
+      "random_key_1": "Make it so.",
+      "random_key_2": "Tea. Earl Grey. Hot."
+    }
+  });
+  
+  let config = {
+    method: 'post',
+    maxBodyLength: Infinity,
+    url: 'https://api.razorpay.com/v1/payouts',
+    headers: { 
+      'Content-Type': 'application/json', 
+      'Authorization': 'Basic cnpwX3Rlc3RfWUx5U1hlTmNqZUJTS1Q6VjJaWTVEWDJDWDZqVnAyb2dvekh1T2hW'
+    },
+    data : data
+  };
+  
+   const response =await axios.request(config);
+   console.log("response",response.status);
+   if (response.status == 200 ||response.data.status === 'processing') {
+    const successData = {
+      user:userId,
+        payoutId: response.data.id,
+        fundAccountId: response.data.fund_account_id,
+        amount: response.data.amount,
+        fees: response.data.fees,
+        tax: response.data.tax,
+        status: response.data.status,
+        referenceId: response.data.reference_id,
+        createdAt: new Date(response.data.created_at * 1000),
+        orderId: orderId // Convert from UNIX timestamp
+        // merchantId: response.data.merchant_id,
+    };
+    const paymentSuccessEntry = new PaymentSuccess(successData); // Assuming PaymentSuccess is a class
+        await paymentSuccessEntry.save();
+    // const paymentSuccess = new paymentSuccess(successData);
+    // await paymentSuccess.save();
+    return res.status(201).json({ message: 'Transcation Succesfull',
+       payoutId:response.data.id,
+       amount: response.data.amount,
+       status: response.data.status,
+       success:true,
+       orderId:orderId,
+       createdAt: successData.createdAt
+       });
+} else {
+    const failureData = {
+        payoutId: response.data.id,
+        fundAccountId: response.data.fund_account_id,
+        amount: response.data.amount,
+        status: response.data.status,
+        error: response.data.error || {},
+        createdAt: new Date(), // You can also use response.created_at if available
+    };
+    const paymentFailure = new paymentFailure(failureData);
+    await paymentFailure.save();
+    return res.status(201).json({ message: 'Transcation Failed',
+      payoutId:response.data.id,
+      amount: response.data.amount,
+      status: response.data.status,
+      error: response.data.error || {},
+      success:false,
+      orderId:orderId
+      });
+}
+ 
+
+});
+
+
 
 app.post('/index' ,AuthMiddleware,async(req,res)=>{
 console.log("request received for token check",req);
