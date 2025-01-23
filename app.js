@@ -195,7 +195,7 @@ mongoose.connect(process.env.MONGODB_URI, { family: 4 }).then(
 app.post('/login', async (req, res) => {
   try {
     console.log("body ", req.body);
-    const { phoneNumber, email } = req.body;
+    const { phoneNumber, countryCode , email } = req.body;
 
     // Validate input
     if (!phoneNumber || !email) {
@@ -219,15 +219,15 @@ app.post('/login', async (req, res) => {
     }
 
     // If user does not exist, create a new user
-    let user = userByEmail || userByPhone || new User({ phoneNumber, email });
-    if (!userByEmail && !userByPhone) {
+    let user = userByEmail || userByPhone || new User({ phoneNumber, countryCode ,email });
+    if (!userByEmail && !userByPhone && !countryCode) {
       await user.save();
     }
 
     // Determine target and type for OTP
     let target, type;
-    if (phoneNumber.startsWith('+91')) {
-      target = phoneNumber.replace('+91', ''); // Cleaned phone number
+    if (countryCode =="+91") {
+      target = phoneNumber; // Cleaned phone number
       type = 'phone'; // Sending OTP to phone
     } else {
       target = email; // Send OTP to email
@@ -399,8 +399,8 @@ console.log("request received", req.body);
 app.post('/verifyOTP', async (req, res) => {
   console.log("request received", req.body);
   try {
-      const { phoneNumber, email, otp } = req.body;
-
+      const { phoneNumber,countryCode, email, otp } = req.body;
+      
       if (!phoneNumber && !email) {
           return res.status(400).json({ message: 'Phone number or email is required' });
       }
@@ -447,6 +447,7 @@ app.post('/verifyOTP', async (req, res) => {
           phoneNumber: user.phoneNumber,
           email:user.email,
           echoCoins: user.echoCoins || 0,
+          countryCode: user.countryCode || "+91",
           token
       });
 
@@ -1778,6 +1779,56 @@ app.get('/admin/get-machine-data', async(req,res)=>{
 // }
 
 // });
+
+app.get('/admin/get-machine-images', async(req, res)=>{
+  const { mcid,date,phoneNumber } = req.query;
+   console.log("request received for images", req.query);
+  try{
+    const phpApiUrl = 'https://www.reatmos.com';
+      const response = await axios.get(`${phpApiUrl}/adminApis/getMCIDiMAGES.php`, {
+          params: {
+            mcid,
+            date,
+            phoneNumber
+          }
+      }).then(response => {
+        // Check if the response is defined and has a status
+        if (response && response.status) {
+          if (response.status === 200) {
+            // Handle successful response
+            // console.log('Images:', response.data);
+            return res.status(200).json(response.data );
+          } else if (response.status === 201) {
+            // Handle case where resource was created (if applicable)
+            console.log('Resource created, but no images returned.');
+            return res.status(201).json("Unexpected response status:",response.status)
+          } else {
+            // Handle unexpected status codes
+            console.error('Unexpected response status:', response.status);
+          }
+        } else {
+          console.error('Response is undefined or does not have a status.');
+        }
+      }).catch(error => {
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          console.error('Error status:', error.response.status);
+          console.error('Error data:', error.response.data);
+        } else {
+          // The request was made but no response was received
+          console.error('Error message:', error.message);
+        }
+      });
+      // console.log("Received data from PHP API:", response.data);
+      // res.json(response.data);
+
+  }
+  catch (error){
+    console.log("error", error);
+    res.status(500).json({ message: 'Error fetching data' });
+  }
+
+});
 
 app.get('/admin/get-filtered-data', async (req, res) => {
   console.log("Request received for get-FILTERD-data");
