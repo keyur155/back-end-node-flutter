@@ -190,12 +190,10 @@ mongoose.connect(process.env.MONGODB_URI, { family: 4 }).then(
 //     return res.status(500).json({ message : 'Internal server error' });
 //   }
 // })
-
-
 app.post('/login', async (req, res) => {
   try {
     console.log("body ", req.body);
-    const { phoneNumber, email } = req.body;
+    const { phoneNumber, countryCode , email } = req.body;
 
     // Validate input
     if (!phoneNumber || !email) {
@@ -219,15 +217,15 @@ app.post('/login', async (req, res) => {
     }
 
     // If user does not exist, create a new user
-    let user = userByEmail || userByPhone || new User({ phoneNumber, email });
-    if (!userByEmail && !userByPhone) {
+    let user = userByEmail || userByPhone || new User({ phoneNumber, countryCode ,email });
+    if (!userByEmail && !userByPhone && !countryCode) {
       await user.save();
     }
 
     // Determine target and type for OTP
     let target, type;
-    if (phoneNumber.startsWith('+91')) {
-      target = phoneNumber.replace('+91', ''); // Cleaned phone number
+    if (countryCode =="+91") {
+      target = phoneNumber; // Cleaned phone number
       type = 'phone'; // Sending OTP to phone
     } else {
       target = email; // Send OTP to email
@@ -279,6 +277,95 @@ console.log("request received", req.body);
     }
 
 });
+
+
+// app.post('/login', async (req, res) => {
+//   try {
+//     console.log("body ", req.body);
+//     const { phoneNumber, email } = req.body;
+
+//     // Validate input
+//     if (!phoneNumber || !email) {
+//       return res.status(400).json({ message: "Phone Number or Email Missing" });
+//     }
+
+//     // Find users by email and phone number
+//     const userByEmail = await User.findOne({ email });
+//     const userByPhone = await User.findOne({ phoneNumber });
+
+//     // Check for user existence and validity
+//     if (userByEmail && userByPhone) {
+//       if (userByEmail._id.toString() !== userByPhone._id.toString()) {
+//         return res.status(401).json({ message: 'Invalid credentials: email and phone number do not match.' });
+//       }
+//     } else if (userByEmail) {
+      
+//       return res.status(400).json({ message: 'Invalid credentials: phone number not found.' });
+//     } else if (userByPhone) {
+//       return res.status(400).json({ message: 'Invalid credentials: email not found.' });
+//     }
+
+//     // If user does not exist, create a new user
+//     let user = userByEmail || userByPhone || new User({ phoneNumber, email });
+//     if (!userByEmail && !userByPhone) {
+//       await user.save();
+//     }
+
+//     // Determine target and type for OTP
+//     let target, type;
+//     if (phoneNumber.startsWith('+91')) {
+//       target = phoneNumber.replace('+91', ''); // Cleaned phone number
+//       type = 'phone'; // Sending OTP to phone
+//     } else {
+//       target = email; // Send OTP to email
+//       type = 'email'; // Sending OTP to email
+//     }
+
+//     // Send OTP
+//     const otpResponse = await sendOtp(target, type);
+//     if (!otpResponse || !otpResponse.otp) {
+//       return res.status(500).json({ message: 'Failed to generate OTP.', type: 'error' });
+//     }
+
+//     // Save OTP and its expiry time to the user
+//     user.otp = otpResponse.otp; // Assuming otpResponse.otp is the correct OTP
+//     user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+//     await user.save();
+
+//     return res.status(200).json({ message: 'OTP sent successfully. Please verify your phone number.', success: 'true' });
+
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ message: 'Internal server error' });
+//   }
+// });
+
+// app.post('/resendOTP', async( req ,res ) =>{
+
+// console.log("request received", req.body);
+//     try {
+//       // Find user by username
+//       const { phoneNumber} = req.body ;
+//       if (!req.body || !req.body.phoneNumber) {
+//               throw new Error('Phone number is missing in request body');
+//             }
+
+//       const user = await User.findOne({phoneNumber});
+//       if (!user) {
+//         return res.status(400).json({msg :"user not found"} );
+//       }
+//       console.log({phoneNumber});
+
+//      await sendOtp(req.body.phoneNumber);
+//       return res.status(200).json({ message : 'OTP sent successfully.' ,
+//       success :'true'
+//       });
+//     } catch (error) {
+//       console.error(error);
+//       return res.status(500).json({ message : 'Internal server error' });
+//     }
+
+// });
 
 // app.post('/verifyOTP', async (req, res) => {
 //   console.log("Request received", req.body);
