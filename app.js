@@ -989,19 +989,19 @@ app.get('/order_record',AuthMiddleware,async (req, res)=> {
         // const userId = req.user._id;
         // console.log(userId);
         // const orders = await OrderGenerated.findById(userId);
-        const key = generateKey(req);
-      const catchedesg = await redisClient.get(key);
-      console.log("catched order data",catchedesg)
-        if(catchedesg){
-          const cachedData = JSON.parse(catchedesg);
-          console.log("in if block", cachedData);
-          if (Array.isArray(cachedData) && cachedData.length === 0) {
-            return res.status(404).json({ message: 'No order records found', success: 'true', cachedData });
-        }
-          return res.status(200).json({message: 'Order records retrieved successfully', success: 'true', cachedData})
-        }
+      //   const key = generateKey(req);
+      // const catchedesg = await redisClient.get(key);
+      // console.log("catched order data",catchedesg)
+      //   if(catchedesg){
+      //     const cachedData = JSON.parse(catchedesg);
+      //     console.log("in if block", cachedData);
+      //     if (Array.isArray(cachedData) && cachedData.length === 0) {
+      //       return res.status(404).json({ message: 'No order records found', success: 'true', cachedData });
+      //   }
+      //     return res.status(200).json({message: 'Order records retrieved successfully', success: 'true', cachedData})
+      //   }
         const orders = await OrderGenerated.find({ user: req.query.userid });
-        await redisClient.set(key ,JSON.stringify(orders))
+        // await redisClient.set(key ,JSON.stringify(orders))
         console.log("orders are ",orders);
 
         if (!orders || orders.length === 0) {
