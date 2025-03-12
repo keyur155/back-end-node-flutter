@@ -28,6 +28,25 @@ const Contact = require('./reward_app/models/razorpay_contact.js');
 const FundAccount = require('./reward_app/models/fund_account.js');
 const PaymentSuccess = require('./reward_app/models/payout.model.js');
 const paymentFailure = require('./reward_app/models/paymentFailure.model.js');
+// import { createClient } from 'redis';
+const Redis = require('ioredis');
+const {generateKey,startServer, redisClient} = require('./reward_app/Services/redisService');
+
+// const redis = new Redis({
+//   host: process.env.REDIS_HOST , // This will get the host from the environment variable
+//   port: process.env.REDIS_PORT, // This will get the port from the environment variable
+//   password: process.env.REDIS_PASSWORD // This will get the password from the environment variable
+// });
+// console.log('Connecting to Redis...');
+// console.log('Host:', process.env.REDIS_HOST);
+// console.log('Port:', process.env.REDIS_PORT);
+
+// startServer().catch((error)=>{
+//   console.log("error while connection to the the redis")
+// })
+
+
+
 
 // const cloudinary = require('cloudinary').v2; // Use .v2 to access the Cloudinary API
 // const { Readable } = require('stream');
@@ -52,6 +71,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// const client = redis.createClient();
+
+// client.on('error', err => console.log('Redis Client Error', err));
+
+// await client.connect();
+
 
 app.use((req, res, next) => {
 	res.header('Access-Control-Allow-Origin', '*');
@@ -64,7 +89,6 @@ app.use((req, res, next) => {
 	}
 	next();
 });
-
 
 mongoose.connect(process.env.MONGODB_URI, { family: 4 }).then(
    ()=>{
@@ -396,6 +420,7 @@ console.log("request received", req.body);
 //     }
 
 // });
+
 app.post('/verifyOTP', async (req, res) => {
   console.log("request received", req.body);
   try {
@@ -456,6 +481,7 @@ app.post('/verifyOTP', async (req, res) => {
       return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 app.post('/QRdata', AuthMiddleware, async (req, res) => {
   console.log("request received QRdata userid", req.query.userid);
   console.log("request received QRdata", req);
@@ -651,9 +677,21 @@ app.post('/QRdata', AuthMiddleware, async (req, res) => {
 
 app.get('/coins' ,AuthMiddleware,async(req,res)=>{
 console.log("request received for coins userid" ,req.query.userid);
+
 try{
+const key = generateKey(req);
+const catchedesg = await redisClient.get(key);
+console.log("catched esg data",catchedesg)
+if(catchedesg){
+  const cachedData = JSON.parse(catchedesg);
+  console.log("in if block", cachedData);
+
+  return res.status(200).json({ message : 'Coins ' ,success :'true', ecoCoins: cachedData})
+}
+
 const user = await User.findOne({ _id: req.query.userid });
 console.log("user coins are", user.echoCoins);
+await redisClient.set(key ,JSON.stringify(user.echoCoins))
 return res.status(200).json({ message : 'Coins ' ,success :'true', ecoCoins: user.echoCoins })
 
 }catch(error){
@@ -665,7 +703,17 @@ return res.status(200).json({ message : 'Coins ' ,success :'true', ecoCoins: use
 app.get('/esg' ,AuthMiddleware ,async(req,res)=>{
   console.log("request received for esg userid" ,req.query.userid);
   try{
+    const key = generateKey(req);
+const catchedesg = await redisClient.get(key);
+console.log("catched esg data",catchedesg)
+  if(catchedesg){
+    const cachedData = JSON.parse(catchedesg);
+    console.log("in if block", cachedData);
+
+    return res.status(200).json({ message : 'ESG' ,success :'true', ESG: cachedData })
+  }
     const ESG_DATA = await ESG.find({ user: req.query.userid });
+    await redisClient.set(key ,JSON.stringify(ESG_DATA))
     console.log("user coins data",  ESG_DATA);
     return res.status(200).json({ message : 'ESG' ,success :'true', ESG: ESG_DATA })
   }catch(error){
@@ -677,7 +725,17 @@ app.get('/esg' ,AuthMiddleware ,async(req,res)=>{
 app.get('/coinshistory',AuthMiddleware ,async(req ,res)=>{
     console.log("request received for coinshistory userid" ,req.query.userid);
     try{
+      const key = generateKey(req);
+      const catchedesg = await redisClient.get(key);
+      console.log("catched esg data",catchedesg)
+        if(catchedesg){
+          const cachedData = JSON.parse(catchedesg);
+          console.log("in if block", cachedData);
+          
+          return res.status(200).json({message : 'Coins ' ,success :'true' ,user: cachedData ,type :'Credit' })
+        }
         const userData = await User_Data.find({ user: req.query.userid });
+        await redisClient.set(key ,JSON.stringify(userData))
         // console.log("user coins data", userData);
         return res.status(200).json({ message : 'Coins ' ,success :'true' ,user: userData ,type :'Credit' })
     }catch(error){
@@ -931,7 +989,19 @@ app.get('/order_record',AuthMiddleware,async (req, res)=> {
         // const userId = req.user._id;
         // console.log(userId);
         // const orders = await OrderGenerated.findById(userId);
+        const key = generateKey(req);
+      const catchedesg = await redisClient.get(key);
+      console.log("catched order data",catchedesg)
+        if(catchedesg){
+          const cachedData = JSON.parse(catchedesg);
+          console.log("in if block", cachedData);
+          if (Array.isArray(cachedData) && cachedData.length === 0) {
+            return res.status(404).json({ message: 'No order records found', success: 'true', cachedData });
+        }
+          return res.status(200).json({message: 'Order records retrieved successfully', success: 'true', cachedData})
+        }
         const orders = await OrderGenerated.find({ user: req.query.userid });
+        await redisClient.set(key ,JSON.stringify(orders))
         console.log("orders are ",orders);
 
         if (!orders || orders.length === 0) {
@@ -969,6 +1039,7 @@ app.post('/payment', async(req,res)=>{
   }
 
   user.echoCoins = avilable_coins;
+  
   await user.save();
   
   const Payment = new payment({ userId, amount ,phoneNumber });
@@ -980,7 +1051,17 @@ app.post('/payment', async(req,res)=>{
 app.get('/get-payment',async(req,res)=>{
   console.log("payment request received");
   try {
+    const key = generateKey(req);
+      const catchedesg = await redisClient.get(key);
+      console.log("catched payment data",catchedesg)
+        if(catchedesg){
+          const cachedData = JSON.parse(catchedesg);
+          console.log("in if block", cachedData);
+          
+          return res.status(200).json(payments)
+        }
     const payments = await payment.find(); // Fetch all payment requests
+    await redisClient.set(key ,JSON.stringify(payments))
     res.status(200).json(payments);
   } catch (error) {
     console.error('Error fetching payments:', error);
@@ -1022,6 +1103,15 @@ app.get('/get-payment-status', async (req, res) => {
   console.log(orderId);
 
   try {
+    const key = generateKey(req);
+      const catchedesg = await redisClient.get(key);
+      console.log("catched order data",catchedesg)
+        if(catchedesg){
+          const cachedData = JSON.parse(catchedesg);
+          console.log("in if block", cachedData);
+          
+          return res.status(200).json({ success: 'true', status: 'success' })
+        }
     const paymentRecord = await payment.findOne({ orderId: orderId }).exec();
     console.log("User order status ", paymentRecord);
 
@@ -1336,9 +1426,20 @@ app.post('/checkoutVoucher', AuthMiddleware, async (req, res) => {
 app.get('/getVouchers', AuthMiddleware, async (req, res) => {
   console.log("request received for vouchers");
   try {
+    const key = generateKey(req);
+    const catched = await redisClient.get(key);
+    console.log("catched vouchers data",catched)
+        if(catched){
+          const cachedData = JSON.parse(catched);
+          console.log("in if block", cachedData);
+          
+          return res.status(200).json(cachedData)
+        }
+    
     const userId = req.query.userid; // Correctly scoped and declared
     console.log(userId);
     const vouchers = await VoucherCredited.find({ user: userId }).exec();
+    await redisClient.set(key ,JSON.stringify(vouchers))
     // console.log(vouchers);
     res.status(200).json(vouchers);
   } catch (error) {
@@ -1352,10 +1453,20 @@ app.get('/getVouchers', AuthMiddleware, async (req, res) => {
 app.get('/purchaseHistory',AuthMiddleware ,async(req,res)=>{
   console.log("request received for purchase history");
   try {
+    const key = generateKey(req);
+    const catched = await redisClient.get(key);
+    console.log("catched purchase data",catched)
+        if(catched){
+          const cachedData = JSON.parse(catched);
+          console.log("in if block", cachedData);
+          
+          return res.status(200).json({ message : 'Coins ' ,success :'true' , userPurchase: cachedData ,type :'Debit' })
+        }
     const userId = req.query.userid; // Correctly scoped and declared
     console.log(userId);
     const userPurchase = await UserPurchase.find({ user: userId }).exec();
     console.log("User purchase ",userPurchase);
+    await redisClient.set(key,JSON.stringify(userPurchase));
     return res.status(200).json({ message : 'Coins ' ,success :'true' , userPurchase: userPurchase ,type :'Debit' })
     // res.status(200).json({type:'Debit',userPurchase:userPurchase});
   } catch (error) {
@@ -1369,8 +1480,18 @@ app.get('/payment-history', AuthMiddleware ,async (req, res) => {
   const userId = req.query.userid; // Correctly scoped and declared
   console.log(userId);
   try {
+    const key = generateKey(req);
+    const catched = await redisClient.get(key);
+    console.log("catched paymet-hostory data",catched)
+        if(catched){
+          const cachedData = JSON.parse(catched);
+          console.log("in if block", cachedData);
+          
+          return res.status(200).json({ success: true,payments: cachedData })
+        }
       const payments = await PaymentSuccess.find({ user: userId  }).sort({ timestamp: -1 });
        // Fetch payments for the user, sorted by time
+       await redisClient.set(key,JSON.stringify(payment));
        console.log("payment log",payments);
       res.json({ success: true,payments: payments });
   } catch (error) {
@@ -1430,7 +1551,18 @@ app.post('/redeem', async (req, res) => {
 app.get('/get-order-admin' ,async(req, res)=>{
   console.log("get order request received");
   try {
+    const key = generateKey(req);
+    const catched = await redisClient.get(key);
+    console.log("catched order admin data",catched)
+        if(catched){
+          const cachedData = JSON.parse(catched);
+          console.log("in if block", cachedData);
+          
+          return res.status(200).json(cachedData)
+        }
+    
     const orders = await OrderGenerated.find(); // Fetch all payment requests
+    await redisClient.set(key,JSON.stringify(orders));
     res.status(200).json(orders);
   } catch (error) {
     console.error('Error fetching payments:', error);
@@ -1543,7 +1675,17 @@ catch(error){
 
 app.get('/admin/get-categories', async(req,res) =>{
   try {
+    const key = generateKey(req);
+    const catched = await redisClient.get(key);
+    console.log("catched order admin data",catched)
+        if(catched){
+          const cachedData = JSON.parse(catched);
+          console.log("in if block", cachedData);
+          
+          return res.status(200).json(cachedData)
+        }
     const categories = await Category.find().select('name'); // Adjust fields as needed
+    await redisClient.set(key,JSON.stringify(categories));
     res.status(200).json(categories);
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -1589,7 +1731,17 @@ app.delete('/admin/delete-category', async (req, res) => {
 app.get('/admin/get-product-info', async(req,res) =>{
   console.log("request received product info");
   try {
+    const key = generateKey(req);
+    const catched = await redisClient.get(key);
+    console.log("catched product-info data",catched)
+        if(catched){
+          const cachedData = JSON.parse(catched);
+          console.log("in if block", cachedData);
+          
+          return res.status(200).json(cachedData)
+        }
     const products = await Product.find(); // Adjust fields as needed
+    await redisClient.set(key,JSON.stringify(products));
     res.status(200).json(products);
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -1682,6 +1834,16 @@ app.post('/admin/products', async (req, res) => {
 app.get('/admin/app-counter', async (req,res)=> {
 console.log("request received for app counter");
 try {
+
+  // const key = generateKey(req);
+  //   const catched = await redisClient.get(key);
+  //   console.log("catched purchase data",catched)
+  //       if(catched){
+  //         const cachedData = JSON.parse(catched);
+  //         console.log("in if block", cachedData);
+          
+  //         return res.status(200).json()
+  //       }
   // Count the number of payments with 'pending' status
   const pendingCount = await payment.countDocuments({ paymentStatus: 'pending' });
   
@@ -1719,8 +1881,6 @@ const totalSuccessAmount = successAmountResult.length > 0 ? successAmountResult[
       totalEcoCoinsPrice,
       totalOrderReceived,
       totalSuccessAmount
-
-
   });
 } catch (error) {
   console.error("Error fetching payment counts:", error);
