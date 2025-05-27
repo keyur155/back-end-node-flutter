@@ -9,7 +9,7 @@ const redisClient = createClient.createClient({
         
         host: process.env.REDIS_HOST,
         // host:'redis.railway.internal',
-        port: 18126,
+        port: process.env.REDIS_PORT,
         // tls: {} // Add this if your Redis server requires SSL
     }
 });
