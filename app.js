@@ -682,12 +682,12 @@ try{
 const key = generateKey(req);
 const catchedesg = await redisClient.get(key);
 console.log("catched esg data",catchedesg)
-if(catchedesg){
-  const cachedData = JSON.parse(catchedesg);
-  console.log("in if block", cachedData);
+// if(catchedesg){
+//   const cachedData = JSON.parse(catchedesg);
+//   console.log("in if block", cachedData);
 
-  return res.status(200).json({ message : 'Coins ' ,success :'true', ecoCoins: cachedData})
-}
+//   return res.status(200).json({ message : 'Coins ' ,success :'true', ecoCoins: cachedData})
+// }
 
 const user = await User.findOne({ _id: req.query.userid });
 console.log("user coins are", user.echoCoins);
