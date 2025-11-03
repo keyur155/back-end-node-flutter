@@ -1491,7 +1491,7 @@ app.get('/payment-history', AuthMiddleware ,async (req, res) => {
         }
       const payments = await PaymentSuccess.find({ user: userId  }).sort({ timestamp: -1 });
        // Fetch payments for the user, sorted by time
-       await redisClient.set(key,JSON.stringify(payment));
+       await redisClient.set(key,JSON.stringify(payments));
        console.log("payment log",payments);
       res.json({ success: true,payments: payments });
   } catch (error) {
@@ -2373,5 +2373,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
