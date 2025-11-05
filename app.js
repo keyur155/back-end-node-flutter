@@ -218,7 +218,7 @@ mongoose.connect(process.env.MONGODB_URI, { family: 4 }).then(
 
 app.post('/login', async (req, res) => {
   try {
-    console.log("body ", req.body);
+    // console.log("body ", req.body);
     const { phoneNumber, countryCode , email } = req.body;
 
     // Validate input
@@ -279,7 +279,7 @@ app.post('/login', async (req, res) => {
 
 app.post('/resendOTP', async( req ,res ) =>{
 
-console.log("request received", req.body);
+// console.log("request received", req.body);
     try {
       // Find user by username
       const { phoneNumber} = req.body ;
@@ -422,7 +422,7 @@ console.log("request received", req.body);
 // });
 
 app.post('/verifyOTP', async (req, res) => {
-  console.log("request received", req.body);
+  // console.log("request received", req.body);
   try {
       const { phoneNumber,countryCode, email, otp } = req.body;
       
@@ -484,7 +484,7 @@ app.post('/verifyOTP', async (req, res) => {
 
 app.post('/QRdata', AuthMiddleware, async (req, res) => {
   console.log("request received QRdata userid", req.query.userid);
-  console.log("request received QRdata", req);
+  // console.log("request received QRdata", req);
   try {
       // Check if the transaction_id is already registered
       const existingData = await User_Data.findOne({ transaction_id: req.body.transaction_id });
@@ -502,6 +502,10 @@ app.post('/QRdata', AuthMiddleware, async (req, res) => {
       if (user.phoneNumber !== req.body.Phone_no) {
           return res.status(402).json({ message: 'Phone number mismatch' });
       }
+
+	  // await deleteKeysByPattern(`coins:userid=${req.query.userid}*`);
+      await deleteKeysByPattern(`esg:userid=${req.query.userid}*`);
+      // await deleteKeysByPattern(`coinshistory:userid=${req.query.userid}*`);
 
       const userData = new User_Data({
           user: req.query.userid,
@@ -713,11 +717,12 @@ console.log("catched esg data",catchedesg)
     return res.status(200).json({ message : 'ESG' ,success :'true', ESG: cachedData })
   }
     const ESG_DATA = await ESG.find({ user: req.query.userid });
-    await redisClient.set(key ,JSON.stringify(ESG_DATA))
+    await redisClient.set(key ,JSON.stringify(ESG_DATA), ,{ EX: 600 })
     console.log("user coins data",  ESG_DATA);
     return res.status(200).json({ message : 'ESG' ,success :'true', ESG: ESG_DATA })
   }catch(error){
     console.log(error);
+	  
   }
 
 });
@@ -727,15 +732,15 @@ app.get('/coinshistory',AuthMiddleware ,async(req ,res)=>{
     try{
       const key = generateKey(req);
       const catchedesg = await redisClient.get(key);
-      console.log("catched esg data",catchedesg)
-        if(catchedesg){
-          const cachedData = JSON.parse(catchedesg);
-          console.log("in if block", cachedData);
+      // console.log("catched esg data",catchedesg)
+        // if(catchedesg){
+        //   const cachedData = JSON.parse(catchedesg);
+        //   console.log("in if block", cachedData);
           
-          return res.status(200).json({message : 'Coins ' ,success :'true' ,user: cachedData ,type :'Credit' })
-        }
+        //   return res.status(200).json({message : 'Coins ' ,success :'true' ,user: cachedData ,type :'Credit' })
+        // }
         const userData = await User_Data.find({ user: req.query.userid });
-        await redisClient.set(key ,JSON.stringify(userData))
+        await redisClient.set(key ,JSON.stringify(userData),,{ EX: 600 })
         // console.log("user coins data", userData);
         return res.status(200).json({ message : 'Coins ' ,success :'true' ,user: userData ,type :'Credit' })
     }catch(error){
@@ -2373,6 +2378,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
