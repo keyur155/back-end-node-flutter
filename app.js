@@ -717,7 +717,7 @@ console.log("catched esg data",catchedesg)
     return res.status(200).json({ message : 'ESG' ,success :'true', ESG: cachedData })
   }
     const ESG_DATA = await ESG.find({ user: req.query.userid });
-    await redisClient.set(key ,JSON.stringify(ESG_DATA), ,{ EX: 600 })
+    await redisClient.set(key ,JSON.stringify(ESG_DATA), { EX: 600 })
     console.log("user coins data",  ESG_DATA);
     return res.status(200).json({ message : 'ESG' ,success :'true', ESG: ESG_DATA })
   }catch(error){
@@ -2378,6 +2378,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
