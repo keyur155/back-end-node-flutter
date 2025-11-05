@@ -1434,12 +1434,12 @@ app.get('/getVouchers', AuthMiddleware, async (req, res) => {
     const key = generateKey(req);
     const catched = await redisClient.get(key);
     console.log("catched vouchers data",catched)
-        if(catched){
-          const cachedData = JSON.parse(catched);
-          console.log("in if block", cachedData);
+        // if(catched){
+        //   const cachedData = JSON.parse(catched);
+        //   console.log("in if block", cachedData);
           
-          return res.status(200).json(cachedData)
-        }
+        //   return res.status(200).json(cachedData)
+        // }
     
     const userId = req.query.userid; // Correctly scoped and declared
     console.log(userId);
@@ -1559,12 +1559,12 @@ app.get('/get-order-admin' ,async(req, res)=>{
     const key = generateKey(req);
     const catched = await redisClient.get(key);
     console.log("catched order admin data",catched)
-        if(catched){
-          const cachedData = JSON.parse(catched);
-          console.log("in if block", cachedData);
+        // if(catched){
+        //   const cachedData = JSON.parse(catched);
+        //   console.log("in if block", cachedData);
           
-          return res.status(200).json(cachedData)
-        }
+        //   return res.status(200).json(cachedData)
+        // }
     
     const orders = await OrderGenerated.find(); // Fetch all payment requests
     await redisClient.set(key,JSON.stringify(orders));
@@ -2378,6 +2378,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
