@@ -1461,12 +1461,12 @@ app.get('/purchaseHistory',AuthMiddleware ,async(req,res)=>{
     const key = generateKey(req);
     const catched = await redisClient.get(key);
     console.log("catched purchase data",catched)
-        if(catched){
-          const cachedData = JSON.parse(catched);
-          console.log("in if block", cachedData);
+        // if(catched){
+        //   const cachedData = JSON.parse(catched);
+        //   console.log("in if block", cachedData);
           
-          return res.status(200).json({ message : 'Coins ' ,success :'true' , userPurchase: cachedData ,type :'Debit' })
-        }
+        //   return res.status(200).json({ message : 'Coins ' ,success :'true' , userPurchase: cachedData ,type :'Debit' })
+        // }
     const userId = req.query.userid; // Correctly scoped and declared
     console.log(userId);
     const userPurchase = await UserPurchase.find({ user: userId }).exec();
@@ -1488,12 +1488,12 @@ app.get('/payment-history', AuthMiddleware ,async (req, res) => {
     const key = generateKey(req);
     const catched = await redisClient.get(key);
     console.log("catched paymet-hostory data",catched)
-        if(catched){
-          const cachedData = JSON.parse(catched);
-          console.log("in if block", cachedData);
+        // if(catched){
+        //   const cachedData = JSON.parse(catched);
+        //   console.log("in if block", cachedData);
           
-          return res.status(200).json({ success: true,payments: cachedData })
-        }
+        //   return res.status(200).json({ success: true,payments: cachedData })
+        // }
       const payments = await PaymentSuccess.find({ user: userId  }).sort({ timestamp: -1 });
        // Fetch payments for the user, sorted by time
        await redisClient.set(key,JSON.stringify(payments));
@@ -2378,6 +2378,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
