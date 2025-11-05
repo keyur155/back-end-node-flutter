@@ -740,7 +740,7 @@ app.get('/coinshistory',AuthMiddleware ,async(req ,res)=>{
         //   return res.status(200).json({message : 'Coins ' ,success :'true' ,user: cachedData ,type :'Credit' })
         // }
         const userData = await User_Data.find({ user: req.query.userid });
-        await redisClient.set(key ,JSON.stringify(userData),,{ EX: 600 })
+        await redisClient.set(key ,JSON.stringify(userData),{ EX: 600 })
         // console.log("user coins data", userData);
         return res.status(200).json({ message : 'Coins ' ,success :'true' ,user: userData ,type :'Credit' })
     }catch(error){
@@ -2378,6 +2378,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
