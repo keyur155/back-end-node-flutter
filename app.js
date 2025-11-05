@@ -30,7 +30,7 @@ const PaymentSuccess = require('./reward_app/models/payout.model.js');
 const paymentFailure = require('./reward_app/models/paymentFailure.model.js');
 // import { createClient } from 'redis';
 const Redis = require('ioredis');
-const {generateKey,startServer, redisClient} = require('./reward_app/Services/redisService');
+const {generateKey,startServer, redisClient,deleteKeysByPattern} = require('./reward_app/Services/redisService');
 
 // const redis = new Redis({
 //   host: process.env.REDIS_HOST , // This will get the host from the environment variable
@@ -2378,6 +2378,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
