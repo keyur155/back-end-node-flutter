@@ -435,7 +435,7 @@ app.post('/verifyOTP', async (req, res) => {
       }
 
 	   // 🔥 GOOGLE REVIEW OTP BYPASS 🔥
-      if (phoneNumber === "9999999999" && otp === "000000") {
+      if (phoneNumber === "9999999999" && otp === "0000") {
           const token = jwt.sign(
               { phoneNumber, reviewUser:true },
               process.env.JWT_SECRET,
@@ -2397,6 +2397,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
