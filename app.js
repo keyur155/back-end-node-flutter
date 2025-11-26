@@ -434,24 +434,47 @@ app.post('/verifyOTP', async (req, res) => {
           return res.status(400).json({ message: 'OTP is required' });
       }
 
-	   // 🔥 GOOGLE REVIEW OTP BYPASS 🔥
+	 
+       // ==========================
+      // 🔥 GOOGLE REVIEW BYPASS 🔥
+      // ==========================
       if (phoneNumber === "9999999999" && otp === "0000") {
+
+          let demoUser = await User.findOne({ phoneNumber });
+
+          // ➤ If user doesn't exist, auto-create one
+          if (!demoUser) {
+              demoUser = new User({
+                  phoneNumber: "9999999999",
+                  email: email || "review@demo.com",
+                  countryCode: "+91",
+                  echoCoins: 0,
+                  createdFor: "google_review"
+              });
+              await demoUser.save();
+              console.log("✔ Demo User Created:", demoUser._id);
+          } else {
+              console.log("✔ Demo User Found:", demoUser._id);
+          }
+
           const token = jwt.sign(
-              { phoneNumber, reviewUser:true },
+              { userId: demoUser._id, phoneNumber },
               process.env.JWT_SECRET,
-              { expiresIn: '24h' }
+              { expiresIn: "24h" }
           );
+
           return res.status(200).json({
-              message: "OTP Verified (Google Review Bypass Active)",
-              success: true,
-              userId: "review_demo_account",
+              message: "OTP Verified (Google Review Bypass)",
+              success: 'true',
+              userId: demoUser._id,   // returns REAL ObjectId now
               phoneNumber,
               countryCode,
-              email: email || "review@demo.com",
-              echoCoins: 0,
+              email: demoUser.email,
+              echoCoins: demoUser.echoCoins,
               token
           });
       }
+
 
       let user;
       if (email) {
@@ -2397,6 +2420,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
