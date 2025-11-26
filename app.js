@@ -434,6 +434,25 @@ app.post('/verifyOTP', async (req, res) => {
           return res.status(400).json({ message: 'OTP is required' });
       }
 
+	   // 🔥 GOOGLE REVIEW OTP BYPASS 🔥
+      if (phoneNumber === "9999999999" && otp === "000000") {
+          const token = jwt.sign(
+              { phoneNumber, reviewUser:true },
+              process.env.JWT_SECRET,
+              { expiresIn: '24h' }
+          );
+          return res.status(200).json({
+              message: "OTP Verified (Google Review Bypass Active)",
+              success: true,
+              userId: "review_demo_account",
+              phoneNumber,
+              countryCode,
+              email: email || "review@demo.com",
+              echoCoins: 0,
+              token
+          });
+      }
+
       let user;
       if (email) {
           user = await User.findOne({ email });
@@ -2378,6 +2397,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
