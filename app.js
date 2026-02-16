@@ -512,13 +512,27 @@ app.post('/verifyOTP', async (req, res) => {
           { expiresIn: '24h' } // Set token expiration time as needed
       );
 
+	  // 🔥 Calculate total coins from transactions
+const coinsResult = await User_Data.aggregate([
+  { $match: { user: user._id } },
+  {
+    $group: {
+      _id: null,
+      total: { $sum: "$echoCoins" }
+    }
+  }
+]);
+
+const totalCoins = coinsResult[0]?.total || 0;
+
+
       return res.status(200).json({
           message: 'OTP verified successfully.',
           success: 'true',
           userId: user._id,
           phoneNumber: user.phoneNumber,
           email:user.email,
-          echoCoins: user.echoCoins || 0,
+          echoCoins: totalCoins,
           countryCode: user.countryCode || "+91",
           token
       });
@@ -2472,6 +2486,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
