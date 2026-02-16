@@ -216,66 +216,134 @@ mongoose.connect(process.env.MONGODB_URI, { family: 4 }).then(
 // })
 
 
+// app.post('/login', async (req, res) => {
+//   try {
+//     // console.log("body ", req.body);
+//     const { phoneNumber, countryCode , email } = req.body;
+
+//     // Validate input
+//     if (!phoneNumber && !email) {
+//       return res.status(400).json({ message: "Phone Number or Email Missing" });
+//     }
+
+//     // Find users by email and phone number
+//     const userByEmail = await User.findOne({ email });
+//     const userByPhone = await User.findOne({ phoneNumber });
+
+//     // Check for user existence and validity
+//     if (userByEmail && userByPhone) {
+//       if (userByEmail._id.toString() !== userByPhone._id.toString()) {
+//         return res.status(401).json({ message: 'Invalid credentials: email and phone number do not match.' });
+//       }
+//     } else if (userByEmail) {
+      
+//       return res.status(400).json({ message: 'Invalid credentials: phone number not found.' });
+//     } else if (userByPhone) {
+//       return res.status(400).json({ message: 'Invalid credentials: email not found.' });
+//     }
+
+//     // If user does not exist, create a new user
+//     let user = userByEmail || userByPhone || new User({ phoneNumber, countryCode ,email });
+//     if (!userByEmail && !userByPhone && !countryCode) {
+//       await user.save();
+//     }
+
+//     // Determine target and type for OTP
+//     let target, type;
+//     if (countryCode =="+91") {
+//       target = phoneNumber; // Cleaned phone number
+//       type = 'phone'; // Sending OTP to phone
+//     } else {
+//       target = email; // Send OTP to email
+//       type = 'email'; // Sending OTP to email
+//     }
+
+//     // Send OTP
+//     const otpResponse = await sendOtp(target, type);
+//     if (!otpResponse || !otpResponse.otp) {
+//       return res.status(500).json({ message: 'Failed to generate OTP.', type: 'error' });
+//     }
+
+//     // Save OTP and its expiry time to the user
+//     user.otp = otpResponse.otp; // Assuming otpResponse.otp is the correct OTP
+//     user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+//     await user.save();
+
+//     return res.status(200).json({ message: 'OTP sent successfully. Please verify your phone number.', success: 'true' });
+
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ message: 'Internal server error' });
+//   }
+// });
+
 app.post('/login', async (req, res) => {
   try {
-    // console.log("body ", req.body);
-    const { phoneNumber, countryCode , email } = req.body;
 
-    // Validate input
+    const { phoneNumber, countryCode, email } = req.body;
+
     if (!phoneNumber && !email) {
-      return res.status(400).json({ message: "Phone Number or Email Missing" });
+      return res.status(400).json({
+        message: "Phone Number or Email Missing"
+      });
     }
 
-    // Find users by email and phone number
-    const userByEmail = await User.findOne({ email });
-    const userByPhone = await User.findOne({ phoneNumber });
-
-    // Check for user existence and validity
-    if (userByEmail && userByPhone) {
-      if (userByEmail._id.toString() !== userByPhone._id.toString()) {
-        return res.status(401).json({ message: 'Invalid credentials: email and phone number do not match.' });
+    // ⭐ ATOMIC USER CREATE / FIND
+    let user = await User.findOneAndUpdate(
+      { phoneNumber },        // search by phone only
+      {
+        $setOnInsert: {
+          phoneNumber,
+          countryCode,
+          isGhost: true
+        },
+        ...(email && { $set: { email } }) // add email if provided
+      },
+      {
+        new: true,
+        upsert: true
       }
-    } else if (userByEmail) {
-      
-      return res.status(400).json({ message: 'Invalid credentials: phone number not found.' });
-    } else if (userByPhone) {
-      return res.status(400).json({ message: 'Invalid credentials: email not found.' });
-    }
+    );
 
-    // If user does not exist, create a new user
-    let user = userByEmail || userByPhone || new User({ phoneNumber, countryCode ,email });
-    if (!userByEmail && !userByPhone && !countryCode) {
-      await user.save();
-    }
-
-    // Determine target and type for OTP
+    // Determine OTP target
     let target, type;
-    if (countryCode =="+91") {
-      target = phoneNumber; // Cleaned phone number
-      type = 'phone'; // Sending OTP to phone
+
+    if (countryCode === "+91") {
+      target = phoneNumber;
+      type = "phone";
     } else {
-      target = email; // Send OTP to email
-      type = 'email'; // Sending OTP to email
+      target = email;
+      type = "email";
     }
 
     // Send OTP
     const otpResponse = await sendOtp(target, type);
-    if (!otpResponse || !otpResponse.otp) {
-      return res.status(500).json({ message: 'Failed to generate OTP.', type: 'error' });
+
+    if (!otpResponse?.otp) {
+      return res.status(500).json({
+        message: "Failed to generate OTP"
+      });
     }
 
-    // Save OTP and its expiry time to the user
-    user.otp = otpResponse.otp; // Assuming otpResponse.otp is the correct OTP
-    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+    // Save OTP
+    user.otp = otpResponse.otp;
+    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
     await user.save();
 
-    return res.status(200).json({ message: 'OTP sent successfully. Please verify your phone number.', success: 'true' });
+    return res.status(200).json({
+      message: "OTP sent successfully",
+      success: true
+    });
 
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({
+      message: "Internal server error"
+    });
   }
 });
+
 
 app.post('/resendOTP', async( req ,res ) =>{
 
@@ -2486,6 +2554,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
