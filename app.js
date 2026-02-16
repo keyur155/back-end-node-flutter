@@ -513,17 +513,17 @@ app.post('/verifyOTP', async (req, res) => {
       );
 
 	  // 🔥 Calculate total coins from transactions
-const coinsResult = await User_Data.aggregate([
-  { $match: { user: user._id } },
-  {
-    $group: {
-      _id: null,
-      total: { $sum: "$echoCoins" }
-    }
-  }
-]);
+// const coinsResult = await User_Data.aggregate([
+//   { $match: { user: user._id } },
+//   {
+//     $group: {
+//       _id: null,
+//       total: { $sum: "$echoCoins" }
+//     }
+//   }
+// ]);
 
-const totalCoins = coinsResult[0]?.total || 0;
+// const totalCoins = coinsResult[0]?.total || 0;
 
 
       return res.status(200).json({
@@ -532,7 +532,7 @@ const totalCoins = coinsResult[0]?.total || 0;
           userId: user._id,
           phoneNumber: user.phoneNumber,
           email:user.email,
-          echoCoins: totalCoins,
+          echoCoins: user.echoCoins || 0,
           countryCode: user.countryCode || "+91",
           token
       });
@@ -2486,6 +2486,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
