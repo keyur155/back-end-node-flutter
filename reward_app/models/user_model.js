@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   otp: { type: String },
   otpExpiry: { type: Date },
   echoCoins: {type: Number ,default: 0 }
+  isGhost: { type: Boolean, default: true }
 //  status : {type: Boolean, require: true}
 //  password: { type: String, required: true }
 });
@@ -14,3 +15,4 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;
+
