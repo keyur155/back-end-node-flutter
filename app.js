@@ -648,6 +648,12 @@ app.post('/api/credit', async (req, res) => {
       transaction_id: transactionId
     });
 
+	   await User.updateOne(
+      { _id: user._id },
+      { $inc: { echoCoins: points } }
+    );
+
+
     res.json({ status: "success" });
 
   } catch (err) {
@@ -2554,6 +2560,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
