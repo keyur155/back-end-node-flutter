@@ -339,6 +339,55 @@ app.post('/QRdata', AuthMiddleware, async (req, res) => {
   }
 });
 
+
+
+
+app.post('/api/credit', async (req, res) => {
+
+  const { phoneNumber, points, bottles, location, transactionId } = req.body;
+
+  try {
+
+    // 1️⃣ Find or create ghost user
+    let user = await User.findOne({ phoneNumber });
+
+    if (!user) {
+      user = await User.create({
+        phoneNumber,
+        isGhost: true
+      });
+    }
+
+    // 2️⃣ Prevent duplicate transaction
+    const exists = await User_Data.findOne({
+      transaction_id: transactionId
+    });
+
+    if (exists) {
+      return res.json({ status: "already processed" });
+    }
+
+    // 3️⃣ Save reward transaction
+    await User_Data.create({
+      user: user._id,
+      phoneNumber,
+      echoCoins: points,
+      Recycled_items: bottles,
+      Location: location,
+      Date: new Date(),
+      transaction_id: transactionId
+    });
+
+    res.json({ status: "success" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: "error" });
+  }
+
+});
+
+
 // app.post('/QRdata', AuthMiddleware, async (req, res) => {
 //   console.log("request received QRdata userid", req.query.userid);
 //   console.log("request received QRdata", req);
@@ -1665,5 +1714,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
