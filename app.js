@@ -382,7 +382,7 @@ app.post('/api/credit', async (req, res) => {
 
     res.json({ status: "success" ,
 			  points:points,
-			  totalCoins: user.echoCoins
+			  totalCoins: ecoCoins
 			 });
 
   } catch (err) {
@@ -1719,6 +1719,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0" ,() => {
     console.log(`Server started on port ${PORT}`);
 })
+
 
 
 
